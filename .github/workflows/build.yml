@@ -26,6 +26,7 @@ jobs:
 
       - name: Copy our files
         run: |
+          mkdir -p temp_app/lib/screens
           cp lib/main.dart temp_app/lib/main.dart
           cp lib/screens/home_screen.dart temp_app/lib/screens/home_screen.dart
           cp pubspec.yaml temp_app/pubspec.yaml
