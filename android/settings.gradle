@@ -1,0 +1,8 @@
+android/settings.gradle
+include ':app'
+
+def localPropertiesFile = new File(rootProject.projectDir, "local.properties")
+def properties = new Properties()
+
+rootProject.name = "anime_app"
+apply from: file("../packages/flutter_tools/gradle/app_plugin_loader.gradle")
