@@ -50,13 +50,13 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       } else {
         setState(() {
-          errorMsg = 'خطأ: ${response.statusCode}';
+          errorMsg = 'Error: ${response.statusCode}';
           isLoading = false;
         });
       }
     } catch (e) {
       setState(() {
-        errorMsg = 'تعذر الاتصال: $e';
+        errorMsg = 'Connection failed: $e';
         isLoading = false;
       });
     }
@@ -82,7 +82,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             SizedBox(width: 10),
             Text(
-              'أنمي سلاير',
+              'Anime MT',
               style: TextStyle(
                 color: Colors.white,
                 fontWeight: FontWeight.bold,
@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   CircularProgressIndicator(color: Color(0xFFE53935)),
                   SizedBox(height: 20),
-                  Text('جاري تحميل الأنمي...', style: TextStyle(color: Colors.white70)),
+                  Text('Loading Anime...', style: TextStyle(color: Colors.white70)),
                 ],
               ),
             )
@@ -126,7 +126,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           backgroundColor: Color(0xFFE53935),
                         ),
                         icon: Icon(Icons.refresh),
-                        label: Text('إعادة المحاولة'),
+                        label: Text('Retry'),
                         onPressed: () {
                           setState(() { isLoading = true; errorMsg = ''; });
                           fetchAnime();
