@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> fetchAnime() async {
-    const url = 'https://graphql.anilist.co';
+    const url = 'https://witanime.life/';
     const query = '''
     {
       Page(perPage: 20) {
