@@ -20,33 +20,41 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> fetchAnime() async {
-    const url = 'https://witanime.life/';
-    const query = '''
-    {
-      Page(perPage: 20) {
-        media(type: ANIME, sort: TRENDING_DESC) {
-          id
-          title { romaji arabic }
-          coverImage { large }
-          episodes
-          averageScore
+    try {
+      const url = 'https://graphql.anilist.co';
+      const query = '''
+      {
+        Page(perPage: 20) {
+          media(type: ANIME, sort: TRENDING_DESC) {
+            id
+            title { romaji arabic }
+            coverImage { large }
+            episodes
+            averageScore
+          }
         }
       }
+      ''';
+
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'query': query}),
+      ).timeout(Duration(seconds: 10));
+
+      final data = jsonDecode(response.body);
+      setState(() {
+        animeList = data['data']['Page']['media'];
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      print('Error: $e');
     }
-    ''';
-
-    final response = await http.post(
-      Uri.parse(url),
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'query': query}),
-    );
-
-    final data = jsonDecode(response.body);
-    setState(() {
-      animeList = data['data']['Page']['media'];
-      isLoading = false;
-    });
   }
+
 
   @override
   Widget build(BuildContext context) {
