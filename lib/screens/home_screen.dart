@@ -31,7 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
             Page(perPage: 20) {
               media(type: ANIME, sort: TRENDING_DESC) {
                 id
-                title { romaji arabic }
+                title { romaji }
                 coverImage { large }
                 averageScore
               }
@@ -143,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Padding(
                             padding: EdgeInsets.all(8),
                             child: Text(
-                              anime['title']['arabic'] ?? anime['title']['romaji'],
+                              anime['title']['romaji'],
                               style: TextStyle(color: Colors.white, fontSize: 13),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
