@@ -21,17 +21,13 @@ class _SplashScreenState extends State<SplashScreen>
       duration: Duration(seconds: 2),
       vsync: this,
     );
-
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeIn),
     );
-
     _scaleAnimation = Tween<double>(begin: 0.5, end: 1).animate(
       CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
     );
-
     _controller.forward();
-
     Future.delayed(Duration(seconds: 3), () {
       Navigator.pushReplacement(
         context,
@@ -72,25 +68,21 @@ class _SplashScreenState extends State<SplashScreen>
                       )
                     ],
                   ),
-                  child: Icon(
-                    Icons.play_arrow,
-                    color: Colors.white,
-                    size: 70,
-                  ),
+                  child: Icon(Icons.play_arrow, color: Colors.white, size: 70),
                 ),
                 SizedBox(height: 30),
                 Text(
-                  'أنمي سلاير',
+                  'Anime MT',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: 32,
+                    fontSize: 36,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+                    letterSpacing: 3,
                   ),
                 ),
                 SizedBox(height: 10),
                 Text(
-                  'عالم الأنمي بين يديك',
+                  'Your Anime World',
                   style: TextStyle(
                     color: Color(0xFFE53935),
                     fontSize: 16,
