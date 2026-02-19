@@ -54,14 +54,14 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Color(0xFF1A1A1A),
         title: Text(
-          'أنمي سلاير',
+          'Anime Os',
           style: TextStyle(
             color: Color(0xFFE53935),
             fontWeight: FontWeight.bold,
             fontSize: 22,
           ),
         ),
-        centerTitle: true,
+        centerTitle: false,
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator(color: Color(0xFFE53935)))
