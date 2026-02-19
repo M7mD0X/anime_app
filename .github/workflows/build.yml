@@ -1,9 +1,12 @@
 name: Build APK
 
 on:
-  push:
-    branches:
-      - main
+  workflow_dispatch:
+    inputs:
+      version_note:
+        description: 'وش الجديد في هذا الإصدار؟'
+        required: false
+        default: 'تحديث جديد'
 
 permissions:
   contents: write
