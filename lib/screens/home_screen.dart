@@ -25,17 +25,17 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String getStatus(String? status) {
     switch (status) {
-      case 'Currently Airing': return '🟢 Ongoing';
-      case 'Finished Airing': return '🔴 Finished';
-      case 'Not yet aired': return '🟡 Upcoming';
-      default: return '❓ Unknown';
+      case 'Currently Airing': return 'Ongoing';
+      case 'Finished Airing': return 'Finished';
+      case 'Not yet aired': return 'Upcoming';
+      default: return 'Unknown';
     }
   }
 
   Future<void> fetchAnime() async {
     try {
       final response = await http.get(
-        Uri.parse('https://api.jikan.moe/v4/top/anime?filter=airing&limit=25'),
+        Uri.parse('https://api.jikan.moe/v4/top/anime?filter=airing&limit=40'),
         headers: {'Content-Type': 'application/json'},
       );
 
