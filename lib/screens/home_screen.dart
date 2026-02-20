@@ -25,45 +25,24 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String getStatus(String? status) {
     switch (status) {
-      case 'RELEASING': return '🟢 Ongoing';
-      case 'FINISHED': return '🔴 Finished';
-      case 'NOT_YET_RELEASED': return '🟡 Upcoming';
-      case 'CANCELLED': return '⚫ Cancelled';
-      case 'HIATUS': return '🟠 Hiatus';
+      case 'Currently Airing': return '🟢 Ongoing';
+      case 'Finished Airing': return '🔴 Finished';
+      case 'Not yet aired': return '🟡 Upcoming';
       default: return '❓ Unknown';
     }
   }
 
   Future<void> fetchAnime() async {
     try {
-      final response = await http.post(
-        Uri.parse('https://graphql.anilist.co'),
+      final response = await http.get(
+        Uri.parse('https://api.jikan.moe/v4/top/anime?filter=airing&limit=25'),
         headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'query': '''
-          {
-            Page(perPage: 30) {
-              media(type: ANIME, sort: TRENDING_DESC) {
-                id
-                title { romaji }
-                coverImage { large }
-                bannerImage
-                averageScore
-                status
-                episodes
-                genres
-                description
-              }
-            }
-          }
-          '''
-        }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
-          animeList = data['data']['Page']['media'];
+          animeList = data['data'];
           filteredList = animeList;
           isLoading = false;
         });
@@ -81,17 +60,34 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void searchAnime(String query) {
-    setState(() {
-      filteredList = animeList.where((anime) {
-        final title = anime['title']['romaji'].toLowerCase();
-        return title.contains(query.toLowerCase());
-      }).toList();
-    });
+  void searchAnime(String query) async {
+    if (query.isEmpty) {
+      setState(() { filteredList = animeList; });
+      return;
+    }
+    try {
+      final response = await http.get(
+        Uri.parse('https://api.jikan.moe/v4/anime?q=${Uri.encodeComponent(query)}&limit=20'),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() { filteredList = data['data']; });
+      }
+    } catch (e) {
+      setState(() {
+        filteredList = animeList.where((anime) {
+          final title = (anime['title'] ?? '').toLowerCase();
+          return title.contains(query.toLowerCase());
+        }).toList();
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final crossAxisCount = screenWidth < 400 ? 3 : screenWidth < 600 ? 3 : 4;
+
     return Scaffold(
       backgroundColor: Color(0xFF0D0D0D),
       appBar: AppBar(
@@ -117,7 +113,7 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: Icon(Icons.refresh, color: Color(0xFFE53935)),
             onPressed: () {
-              setState(() { isLoading = true; errorMsg = ''; });
+              setState(() { isLoading = true; errorMsg = ''; _searchController.clear(); });
               fetchAnime();
             },
           )
@@ -180,15 +176,19 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: GridView.builder(
                         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.58,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+                          crossAxisCount: crossAxisCount,
+                          childAspectRatio: 0.55,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
                         ),
                         itemCount: filteredList.length,
                         itemBuilder: (context, index) {
                           final anime = filteredList[index];
                           final status = getStatus(anime['status']);
+                          final score = anime['score'];
+                          final cover = anime['images']?['jpg']?['large_image_url'] ?? '';
+                          final title = anime['title'] ?? '';
+
                           return GestureDetector(
                             onTap: () {
                               Navigator.push(context,
@@ -196,14 +196,11 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                             child: Container(
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 color: Color(0xFF1A1A1A),
-                                boxShadow: [
-                                  BoxShadow(color: Colors.black45, blurRadius: 8, offset: Offset(0, 4))
-                                ],
                               ),
                               child: ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(10),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -212,7 +209,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         fit: StackFit.expand,
                                         children: [
                                           Image.network(
-                                            anime['coverImage']['large'],
+                                            cover,
                                             fit: BoxFit.cover,
                                             errorBuilder: (c, e, s) => Container(
                                               color: Colors.grey[900],
@@ -220,20 +217,21 @@ class _HomeScreenState extends State<HomeScreen> {
                                             ),
                                           ),
                                           Positioned(
-                                            top: 8,
-                                            right: 8,
+                                            top: 6,
+                                            right: 6,
                                             child: Container(
-                                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                                               decoration: BoxDecoration(
                                                 color: Color(0xFFE53935),
                                                 borderRadius: BorderRadius.circular(20),
                                               ),
                                               child: Row(
+                                                mainAxisSize: MainAxisSize.min,
                                                 children: [
-                                                  Icon(Icons.star, color: Colors.white, size: 12),
-                                                  SizedBox(width: 3),
-                                                  Text('${anime['averageScore'] ?? 'N/A'}',
-                                                    style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                                  Icon(Icons.star, color: Colors.white, size: 10),
+                                                  SizedBox(width: 2),
+                                                  Text('${score ?? 'N/A'}',
+                                                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                                                 ],
                                               ),
                                             ),
@@ -242,20 +240,18 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                     ),
                                     Padding(
-                                      padding: EdgeInsets.all(8),
+                                      padding: EdgeInsets.all(6),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Text(
-                                            anime['title']['romaji'],
-                                            style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                          Text(title,
+                                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                                             maxLines: 2,
                                             overflow: TextOverflow.ellipsis,
                                           ),
-                                          SizedBox(height: 4),
+                                          SizedBox(height: 3),
                                           Text(status,
-                                            style: TextStyle(color: Colors.white54, fontSize: 10),
-                                            maxLines: 1,
+                                            style: TextStyle(color: Colors.white54, fontSize: 9),
                                           ),
                                         ],
                                       ),
