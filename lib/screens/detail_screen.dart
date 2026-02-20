@@ -25,10 +25,10 @@ class DetailScreen extends StatelessWidget {
 
     String getStatusText() {
       switch (status) {
-        case 'Currently Airing': return '🟢 Ongoing';
-        case 'Finished Airing': return '🔴 Finished';
-        case 'Not yet aired': return '🟡 Upcoming';
-        default: return '❓ $status';
+        case 'Currently Airing': return 'Ongoing';
+        case 'Finished Airing': return 'Finished';
+        case 'Not yet aired': return 'Upcoming';
+        default: return '$status';
       }
     }
 
