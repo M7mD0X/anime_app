@@ -14,6 +14,8 @@ class _HomeScreenState extends State<HomeScreen> {
   List animeList = [];
   List filteredList = [];
   bool isLoading = true;
+  bool isSearching = false;
+  bool isSearchLoading = false;
   String errorMsg = '';
   final TextEditingController _searchController = TextEditingController();
 
@@ -28,17 +30,26 @@ class _HomeScreenState extends State<HomeScreen> {
       case 'Currently Airing': return 'Ongoing';
       case 'Finished Airing': return 'Finished';
       case 'Not yet aired': return 'Upcoming';
-      default: return 'Unknown';
+      case 'On Hiatus': return 'On Hiatus';
+      case 'Discontinued': return 'Discontinued';
+      default: return status ?? 'Unknown';
+    }
+  }
+
+  Color getStatusColor(String? status) {
+    switch (status) {
+      case 'Currently Airing': return Colors.green;
+      case 'Finished Airing': return Colors.redAccent;
+      case 'Not yet aired': return Colors.amber;
+      default: return Colors.grey;
     }
   }
 
   Future<void> fetchAnime() async {
     try {
       final response = await http.get(
-        Uri.parse('https://api.jikan.moe/v4/top/anime?filter=airing&limit=40'),
-        headers: {'Content-Type': 'application/json'},
+        Uri.parse('https://api.jikan.moe/v4/top/anime?filter=airing&limit=25'),
       );
-
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         setState(() {
@@ -54,32 +65,28 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     } catch (e) {
       setState(() {
-        errorMsg = 'Connection failed: $e';
+        errorMsg = 'Connection failed';
         isLoading = false;
       });
     }
   }
 
-  void searchAnime(String query) async {
+  Future<void> searchAnime(String query) async {
     if (query.isEmpty) {
-      setState(() { filteredList = animeList; });
+      setState(() { filteredList = animeList; isSearchLoading = false; });
       return;
     }
+    setState(() { isSearchLoading = true; });
     try {
       final response = await http.get(
         Uri.parse('https://api.jikan.moe/v4/anime?q=${Uri.encodeComponent(query)}&limit=20'),
       );
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        setState(() { filteredList = data['data']; });
+        setState(() { filteredList = data['data']; isSearchLoading = false; });
       }
     } catch (e) {
-      setState(() {
-        filteredList = animeList.where((anime) {
-          final title = (anime['title'] ?? '').toLowerCase();
-          return title.contains(query.toLowerCase());
-        }).toList();
-      });
+      setState(() { isSearchLoading = false; });
     }
   }
 
@@ -93,30 +100,50 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         backgroundColor: Color(0xFF1A1A1A),
         elevation: 0,
-        title: Row(
-          children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Color(0xFFE53935),
+        title: isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                onChanged: searchAnime,
+                style: TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search anime...',
+                  hintStyle: TextStyle(color: Colors.white38),
+                  border: InputBorder.none,
+                ),
+              )
+            : Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFE53935),
+                    ),
+                    child: Icon(Icons.play_arrow, color: Colors.white, size: 20),
+                  ),
+                  SizedBox(width: 10),
+                  Text('Anime MT',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
+                ],
               ),
-              child: Icon(Icons.play_arrow, color: Colors.white, size: 20),
-            ),
-            SizedBox(width: 10),
-            Text('Anime MT',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20)),
-          ],
-        ),
         actions: [
           IconButton(
-            icon: Icon(Icons.refresh, color: Color(0xFFE53935)),
+            icon: Icon(
+              isSearching ? Icons.close : Icons.search,
+              color: Color(0xFFE53935),
+            ),
             onPressed: () {
-              setState(() { isLoading = true; errorMsg = ''; _searchController.clear(); });
-              fetchAnime();
+              setState(() {
+                isSearching = !isSearching;
+                if (!isSearching) {
+                  _searchController.clear();
+                  filteredList = animeList;
+                }
+              });
             },
-          )
+          ),
         ],
       ),
       body: isLoading
@@ -151,121 +178,111 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                   ),
                 )
-              : Column(
-                  children: [
-                    Padding(
-                      padding: EdgeInsets.all(12),
-                      child: TextField(
-                        controller: _searchController,
-                        onChanged: searchAnime,
-                        style: TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Search anime...',
-                          hintStyle: TextStyle(color: Colors.white38),
-                          prefixIcon: Icon(Icons.search, color: Color(0xFFE53935)),
-                          filled: true,
-                          fillColor: Color(0xFF1A1A1A),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide.none,
-                          ),
-                        ),
+              : isSearchLoading
+                  ? Center(child: CircularProgressIndicator(color: Color(0xFFE53935)))
+                  : GridView.builder(
+                      padding: EdgeInsets.all(10),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: 0.55,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
                       ),
-                    ),
-                    Expanded(
-                      child: GridView.builder(
-                        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: crossAxisCount,
-                          childAspectRatio: 0.55,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                        itemCount: filteredList.length,
-                        itemBuilder: (context, index) {
-                          final anime = filteredList[index];
-                          final status = getStatus(anime['status']);
-                          final score = anime['score'];
-                          final cover = anime['images']?['jpg']?['large_image_url'] ?? '';
-                          final title = anime['title'] ?? '';
+                      itemCount: filteredList.length,
+                      itemBuilder: (context, index) {
+                        final anime = filteredList[index];
+                        final status = anime['status'];
+                        final score = anime['score'];
+                        final cover = anime['images']?['jpg']?['large_image_url'] ?? '';
+                        final title = anime['title'] ?? '';
 
-                          return GestureDetector(
-                            onTap: () {
-                              Navigator.push(context,
-                                MaterialPageRoute(builder: (_) => DetailScreen(anime: anime)));
-                            },
-                            child: Container(
-                              decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(10),
-                                color: Color(0xFF1A1A1A),
-                              ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          Image.network(
-                                            cover,
-                                            fit: BoxFit.cover,
-                                            errorBuilder: (c, e, s) => Container(
-                                              color: Colors.grey[900],
-                                              child: Icon(Icons.broken_image, color: Colors.grey),
+                        return GestureDetector(
+                          onTap: () {
+                            Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => DetailScreen(anime: anime)));
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              color: Color(0xFF1A1A1A),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(
+                                    child: Stack(
+                                      fit: StackFit.expand,
+                                      children: [
+                                        Image.network(
+                                          cover,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (c, e, s) => Container(
+                                            color: Colors.grey[900],
+                                            child: Icon(Icons.broken_image, color: Colors.grey),
+                                          ),
+                                        ),
+                                        Positioned(
+                                          top: 6,
+                                          right: 6,
+                                          child: Container(
+                                            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                            decoration: BoxDecoration(
+                                              color: Colors.black54,
+                                              borderRadius: BorderRadius.circular(20),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(Icons.star, color: Colors.amber, size: 10),
+                                                SizedBox(width: 2),
+                                                Text('${score ?? 'N/A'}',
+                                                  style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                              ],
                                             ),
                                           ),
-                                          Positioned(
-                                            top: 6,
-                                            right: 6,
-                                            child: Container(
-                                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: EdgeInsets.all(6),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(title,
+                                          style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        SizedBox(height: 3),
+                                        Row(
+                                          children: [
+                                            Container(
+                                              width: 6,
+                                              height: 6,
                                               decoration: BoxDecoration(
-                                                color: Color(0xFFE53935),
-                                                borderRadius: BorderRadius.circular(20),
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Icon(Icons.star, color: Colors.white, size: 10),
-                                                  SizedBox(width: 2),
-                                                  Text('${score ?? 'N/A'}',
-                                                    style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                                                ],
+                                                shape: BoxShape.circle,
+                                                color: getStatusColor(status),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
+                                            SizedBox(width: 4),
+                                            Text(getStatus(status),
+                                              style: TextStyle(color: Colors.white54, fontSize: 9),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
                                     ),
-                                    Padding(
-                                      padding: EdgeInsets.all(6),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(title,
-                                            style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          SizedBox(height: 3),
-                                          Text(status,
-                                            style: TextStyle(color: Colors.white54, fontSize: 9),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
-                  ],
-                ),
     );
   }
 }
