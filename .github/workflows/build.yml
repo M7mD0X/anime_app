@@ -53,9 +53,12 @@ jobs:
           cp lib/screens/detail_screen.dart temp_app/lib/screens/detail_screen.dart
           cp lib/services/api_service.dart temp_app/lib/services/api_service.dart
           cp pubspec.yaml temp_app/pubspec.yaml
+          cp icon.png temp_app/icon.png
           sed -i 's/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">\n    <uses-permission android:name="android.permission.INTERNET"\/>/' temp_app/android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="anime_mt"/android:label="Anime MT"/' temp_app/android/app/src/main/AndroidManifest.xml
           cd temp_app
           flutter pub get
+          dart run flutter_launcher_icons
           flutter build apk --release
 
       - name: Set version
