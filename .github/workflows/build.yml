@@ -51,6 +51,7 @@ jobs:
           cp lib/screens/downloads_screen.dart temp_app/lib/screens/downloads_screen.dart
           cp lib/screens/settings_screen.dart temp_app/lib/screens/settings_screen.dart
           cp lib/screens/detail_screen.dart temp_app/lib/screens/detail_screen.dart
+          cp lib/screens/player_screen.dart temp_app/lib/screens/player_screen.dart
           cp lib/services/api_service.dart temp_app/lib/services/api_service.dart
           cp pubspec.yaml temp_app/pubspec.yaml
           cp icon.png temp_app/icon.png
