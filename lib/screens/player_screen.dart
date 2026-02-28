@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:video_player/video_player.dart';
+import 'package:better_player/better_player.dart';
 
 class PlayerScreen extends StatefulWidget {
   final Map episode;
@@ -13,12 +13,10 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  VideoPlayerController? _controller;
+  BetterPlayerController? _controller;
   bool isLoading = true;
   bool hasError = false;
   bool isArabic = false;
-  bool showControls = true;
-  bool isFullscreen = false;
 
   @override
   void initState() {
@@ -28,7 +26,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Future<void> initPlayer({bool arabic = false}) async {
     setState(() { isLoading = true; hasError = false; });
-    await _controller?.dispose();
 
     final url = arabic
         ? (widget.episode['video_url_arabic'] ?? widget.episode['video_url'] ?? '')
@@ -40,39 +37,74 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
 
     try {
-      _controller = VideoPlayerController.networkUrl(Uri.parse(url));
-      await _controller!.initialize();
-      _controller!.addListener(() { setState(() {}); });
-      _controller!.play();
+      _controller?.dispose();
+
+      final dataSource = BetterPlayerDataSource(
+        BetterPlayerDataSourceType.network,
+        url,
+        videoFormat: url.contains('.m3u8')
+            ? BetterPlayerVideoFormat.hls
+            : BetterPlayerVideoFormat.other,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+          'Referer': 'https://hianime.to',
+        },
+      );
+
+      _controller = BetterPlayerController(
+        BetterPlayerConfiguration(
+          autoPlay: true,
+          looping: false,
+          fullScreenByDefault: false,
+          allowedScreenSleep: false,
+          autoDetectFullscreenDeviceOrientation: true,
+          autoDetectFullscreenAspectRatio: true,
+          controlsConfiguration: BetterPlayerControlsConfiguration(
+            enableOverflowMenu: false,
+            enableSkips: true,
+            skipForwardTimeInMilliseconds: 10000,
+            skipBackTimeInMilliseconds: 10000,
+            progressBarPlayedColor: Color(0xFFE53935),
+            progressBarHandleColor: Color(0xFFE53935),
+            progressBarBufferedColor: Colors.white30,
+            progressBarBackgroundColor: Colors.white12,
+            loadingColor: Color(0xFFE53935),
+            playIcon: Icons.play_arrow,
+            pauseIcon: Icons.pause,
+          ),
+          aspectRatio: 16 / 9,
+          fit: BoxFit.contain,
+          errorBuilder: (context, errorMessage) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, color: Colors.red, size: 50),
+                  SizedBox(height: 10),
+                  Text('Failed to load video',
+                    style: TextStyle(color: Colors.white70)),
+                  SizedBox(height: 16),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFE53935)),
+                    onPressed: () => initPlayer(arabic: isArabic),
+                    child: Text('Retry'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+        betterPlayerDataSource: dataSource,
+      );
+
       setState(() { isLoading = false; });
     } catch (e) {
       setState(() { hasError = true; isLoading = false; });
     }
   }
 
-  void toggleFullscreen() {
-    setState(() { isFullscreen = !isFullscreen; });
-    if (isFullscreen) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.landscapeLeft,
-        DeviceOrientation.landscapeRight,
-      ]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
-    } else {
-      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-    }
-  }
-
-  String formatDuration(Duration d) {
-    String twoDigits(int n) => n.toString().padLeft(2, '0');
-    return '${twoDigits(d.inMinutes)}:${twoDigits(d.inSeconds.remainder(60))}';
-  }
-
   @override
   void dispose() {
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     _controller?.dispose();
     super.dispose();
   }
@@ -85,7 +117,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: isFullscreen ? null : AppBar(
+      appBar: AppBar(
         backgroundColor: Colors.black,
         iconTheme: IconThemeData(color: Colors.white),
         title: Column(
@@ -98,168 +130,80 @@ class _PlayerScreenState extends State<PlayerScreen> {
           ],
         ),
       ),
-      body: isFullscreen
-          ? _buildPlayer(hasArabic, epNumber, epTitle)
-          : Column(
-              children: [
-                AspectRatio(
-                  aspectRatio: 16 / 9,
-                  child: _buildPlayer(hasArabic, epNumber, epTitle),
-                ),
-                Expanded(
-                  child: Container(
-                    color: Color(0xFF0D0D0D),
-                    padding: EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Now Playing',
-                          style: TextStyle(color: Color(0xFFE53935), fontSize: 13, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 8),
-                        Text(widget.animeTitle,
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-                        SizedBox(height: 4),
-                        Text('Episode $epNumber - $epTitle',
-                          style: TextStyle(color: Colors.white54, fontSize: 13)),
-                        if (hasArabic) ...[
-                          SizedBox(height: 20),
-                          Text('Language',
-                            style: TextStyle(color: Color(0xFFE53935), fontSize: 13, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 10),
-                          Row(
+      body: Column(
+        children: [
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: isLoading
+                ? Container(
+                    color: Colors.black,
+                    child: Center(child: CircularProgressIndicator(color: Color(0xFFE53935))),
+                  )
+                : hasError
+                    ? Container(
+                        color: Colors.black,
+                        child: Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _langButton('English', !isArabic, () {
-                                setState(() { isArabic = false; });
-                                initPlayer(arabic: false);
-                              }),
-                              SizedBox(width: 10),
-                              _langButton('عربي', isArabic, () {
-                                setState(() { isArabic = true; });
-                                initPlayer(arabic: true);
-                              }),
+                              Icon(Icons.error_outline, color: Colors.red, size: 50),
+                              SizedBox(height: 10),
+                              Text('Failed to load video',
+                                style: TextStyle(color: Colors.white70)),
+                              SizedBox(height: 16),
+                              ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Color(0xFFE53935)),
+                                onPressed: () => initPlayer(arabic: isArabic),
+                                child: Text('Retry'),
+                              ),
                             ],
                           ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-    );
-  }
-
-  Widget _buildPlayer(bool hasArabic, dynamic epNumber, String epTitle) {
-    if (isLoading) {
-      return Container(
-        color: Colors.black,
-        child: Center(child: CircularProgressIndicator(color: Color(0xFFE53935))),
-      );
-    }
-
-    if (hasError) {
-      return Container(
-        color: Colors.black,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, color: Colors.red, size: 50),
-              SizedBox(height: 10),
-              Text('Failed to load video', style: TextStyle(color: Colors.white70)),
-              SizedBox(height: 16),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(backgroundColor: Color(0xFFE53935)),
-                onPressed: () => initPlayer(arabic: isArabic),
-                child: Text('Retry'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final position = _controller!.value.position;
-    final duration = _controller!.value.duration;
-    final isPlaying = _controller!.value.isPlaying;
-
-    return GestureDetector(
-      onTap: () => setState(() => showControls = !showControls),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(color: Colors.black),
-          AspectRatio(
-            aspectRatio: _controller!.value.aspectRatio,
-            child: VideoPlayer(_controller!),
-          ),
-          if (showControls) ...[
-            Container(color: Colors.black45),
-            Positioned(
-              bottom: 0, left: 0, right: 0,
-              child: Column(
-                children: [
-                  VideoProgressIndicator(
-                    _controller!,
-                    allowScrubbing: true,
-                    colors: VideoProgressColors(
-                      playedColor: Color(0xFFE53935),
-                      bufferedColor: Colors.white30,
-                      backgroundColor: Colors.white12,
-                    ),
-                  ),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    child: Row(
-                      children: [
-                        Text(formatDuration(position),
-                          style: TextStyle(color: Colors.white, fontSize: 12)),
-                        Text(' / ', style: TextStyle(color: Colors.white54, fontSize: 12)),
-                        Text(formatDuration(duration),
-                          style: TextStyle(color: Colors.white54, fontSize: 12)),
-                        Spacer(),
-                        IconButton(
-                          icon: Icon(
-                            isFullscreen ? Icons.fullscreen_exit : Icons.fullscreen,
-                            color: Colors.white),
-                          onPressed: toggleFullscreen,
                         ),
+                      )
+                    : BetterPlayer(controller: _controller!),
+          ),
+          Expanded(
+            child: Container(
+              color: Color(0xFF0D0D0D),
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Now Playing',
+                    style: TextStyle(color: Color(0xFFE53935), fontSize: 13,
+                      fontWeight: FontWeight.bold)),
+                  SizedBox(height: 8),
+                  Text(widget.animeTitle,
+                    style: TextStyle(color: Colors.white, fontSize: 16,
+                      fontWeight: FontWeight.bold)),
+                  SizedBox(height: 4),
+                  Text('Episode $epNumber - $epTitle',
+                    style: TextStyle(color: Colors.white54, fontSize: 13)),
+                  if (hasArabic) ...[
+                    SizedBox(height: 20),
+                    Text('Language',
+                      style: TextStyle(color: Color(0xFFE53935), fontSize: 13,
+                        fontWeight: FontWeight.bold)),
+                    SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _langButton('English', !isArabic, () {
+                          setState(() { isArabic = false; });
+                          initPlayer(arabic: false);
+                        }),
+                        SizedBox(width: 10),
+                        _langButton('عربي', isArabic, () {
+                          setState(() { isArabic = true; });
+                          initPlayer(arabic: true);
+                        }),
                       ],
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                IconButton(
-                  icon: Icon(Icons.replay_10, color: Colors.white, size: 36),
-                  onPressed: () {
-                    final pos = position - Duration(seconds: 10);
-                    _controller!.seekTo(pos < Duration.zero ? Duration.zero : pos);
-                  },
-                ),
-                SizedBox(width: 20),
-                IconButton(
-                  icon: Icon(
-                    isPlaying ? Icons.pause_circle : Icons.play_circle,
-                    color: Colors.white, size: 60),
-                  onPressed: () {
-                    isPlaying ? _controller!.pause() : _controller!.play();
-                  },
-                ),
-                SizedBox(width: 20),
-                IconButton(
-                  icon: Icon(Icons.forward_10, color: Colors.white, size: 36),
-                  onPressed: () {
-                    final pos = position + Duration(seconds: 10);
-                    _controller!.seekTo(pos > duration ? duration : pos);
-                  },
-                ),
-              ],
-            ),
-          ],
+          ),
         ],
       ),
     );
