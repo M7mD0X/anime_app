@@ -62,8 +62,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
           controlsConfiguration: BetterPlayerControlsConfiguration(
             enableOverflowMenu: false,
             enableSkips: true,
-            skipForwardTimeInMilliseconds: 10000,
-            skipBackTimeInMilliseconds: 10000,
             progressBarPlayedColor: Color(0xFFE53935),
             progressBarHandleColor: Color(0xFFE53935),
             progressBarBufferedColor: Colors.white30,
