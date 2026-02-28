@@ -13,7 +13,9 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   List episodes = [];
+  List aniwatchEpisodes = [];
   bool isLoadingEpisodes = true;
+  String errorMsg = '';
 
   @override
   void initState() {
@@ -22,14 +24,70 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> fetchEpisodes() async {
+    final aniwatchId = widget.anime['aniwatch_id'] ?? '';
+
     try {
-      final data = await ApiService.getEpisodes(widget.anime['id']);
+      if (aniwatchId.isNotEmpty) {
+        final data = await ApiService.aniwatchGetEpisodes(aniwatchId);
+        final eps = data['data']?['episodes'] as List? ?? [];
+        setState(() {
+          aniwatchEpisodes = eps;
+          isLoadingEpisodes = false;
+        });
+      } else {
+        final data = await ApiService.getEpisodes(widget.anime['id']);
+        setState(() {
+          episodes = data['results'];
+          isLoadingEpisodes = false;
+        });
+      }
+    } catch (e) {
       setState(() {
-        episodes = data['results'];
+        errorMsg = 'Failed to load episodes';
         isLoadingEpisodes = false;
       });
-    } catch (e) {
-      setState(() { isLoadingEpisodes = false; });
+    }
+  }
+
+  Future<void> playEpisode(Map ep, bool isAniwatch) async {
+    if (isAniwatch) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => Center(child: CircularProgressIndicator(color: Color(0xFFE53935))),
+      );
+      try {
+        final episodeId = ep['episodeId'] ?? '';
+        final data = await ApiService.aniwatchGetSources('$episodeId&server=hd-1&category=sub');
+        Navigator.pop(context);
+
+        final sources = data['data']?['sources'] as List? ?? [];
+        if (sources.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No sources found'), backgroundColor: Colors.red));
+          return;
+        }
+
+        final videoUrl = sources[0]['url'] ?? '';
+        Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
+          episode: {
+            'number': ep['number'],
+            'title': ep['title'] ?? '',
+            'video_url': videoUrl,
+            'video_url_arabic': '',
+          },
+          animeTitle: widget.anime['title'] ?? '',
+        )));
+      } catch (e) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load video'), backgroundColor: Colors.red));
+      }
+    } else {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
+        episode: ep,
+        animeTitle: widget.anime['title'] ?? '',
+      )));
     }
   }
 
@@ -66,6 +124,8 @@ class _DetailScreenState extends State<DetailScreen> {
     final genres = (widget.anime['genres'] as List?) ?? [];
     final description = widget.anime['description'] ?? '';
     final descriptionArabic = widget.anime['description_arabic'] ?? '';
+    final hasAniwatch = (widget.anime['aniwatch_id'] ?? '').isNotEmpty;
+    final displayEpisodes = hasAniwatch ? aniwatchEpisodes : episodes;
 
     return Scaffold(
       backgroundColor: Color(0xFF0D0D0D),
@@ -106,7 +166,8 @@ class _DetailScreenState extends State<DetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(title,
-                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                              style: TextStyle(color: Colors.white, fontSize: 16,
+                                fontWeight: FontWeight.bold)),
                             if (titleArabic.isNotEmpty) ...[
                               SizedBox(height: 4),
                               Text(titleArabic,
@@ -146,7 +207,9 @@ class _DetailScreenState extends State<DetailScreen> {
                   SizedBox(height: 16),
                   Row(
                     children: [
-                      _statBox('Episodes', '$episodesCount'),
+                      _statBox('Episodes', hasAniwatch
+                        ? '${aniwatchEpisodes.length}'
+                        : '$episodesCount'),
                       SizedBox(width: 10),
                       _statBox('Score', '${score ?? 'N/A'}'),
                       SizedBox(width: 10),
@@ -156,11 +219,11 @@ class _DetailScreenState extends State<DetailScreen> {
                   if (genres.isNotEmpty) ...[
                     SizedBox(height: 20),
                     Text('Genres',
-                      style: TextStyle(color: Color(0xFFE53935), fontSize: 15, fontWeight: FontWeight.bold)),
+                      style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
+                        fontWeight: FontWeight.bold)),
                     SizedBox(height: 8),
                     Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
+                      spacing: 8, runSpacing: 8,
                       children: genres.map((g) => Container(
                         padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
@@ -175,7 +238,8 @@ class _DetailScreenState extends State<DetailScreen> {
                   if (description.isNotEmpty) ...[
                     SizedBox(height: 20),
                     Text('Synopsis',
-                      style: TextStyle(color: Color(0xFFE53935), fontSize: 15, fontWeight: FontWeight.bold)),
+                      style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
+                        fontWeight: FontWeight.bold)),
                     SizedBox(height: 8),
                     Text(description,
                       style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.6)),
@@ -183,82 +247,82 @@ class _DetailScreenState extends State<DetailScreen> {
                   if (descriptionArabic.isNotEmpty) ...[
                     SizedBox(height: 16),
                     Text('القصة',
-                      style: TextStyle(color: Color(0xFFE53935), fontSize: 15, fontWeight: FontWeight.bold)),
+                      style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
+                        fontWeight: FontWeight.bold)),
                     SizedBox(height: 8),
                     Text(descriptionArabic,
                       style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.6),
                       textDirection: TextDirection.rtl),
                   ],
                   SizedBox(height: 20),
-                  Text('Episodes',
-                    style: TextStyle(color: Color(0xFFE53935), fontSize: 15, fontWeight: FontWeight.bold)),
+                  Row(
+                    children: [
+                      Text('Episodes',
+                        style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
+                          fontWeight: FontWeight.bold)),
+                      SizedBox(width: 8),
+                      if (hasAniwatch)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text('Auto', style: TextStyle(color: Colors.green, fontSize: 11)),
+                        ),
+                    ],
+                  ),
                   SizedBox(height: 10),
                   isLoadingEpisodes
                       ? Center(child: CircularProgressIndicator(color: Color(0xFFE53935)))
-                      : episodes.isEmpty
-                          ? Center(
-                              child: Text('No episodes yet',
-                                style: TextStyle(color: Colors.white38)))
-                          : ListView.builder(
-                              shrinkWrap: true,
-                              physics: NeverScrollableScrollPhysics(),
-                              itemCount: episodes.length,
-                              itemBuilder: (context, index) {
-                                final ep = episodes[index];
-                                final hasArabic = (ep['video_url_arabic'] ?? '').isNotEmpty;
-                                return GestureDetector(
-                                  onTap: () => Navigator.push(context,
-                                    MaterialPageRoute(builder: (_) => PlayerScreen(
-                                      episode: ep,
-                                      animeTitle: title,
-                                    ))),
-                                  child: Container(
-                                    margin: EdgeInsets.only(bottom: 8),
-                                    decoration: BoxDecoration(
-                                      color: Color(0xFF1A1A1A),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: ListTile(
-                                      leading: Container(
-                                        width: 40, height: 40,
+                      : errorMsg.isNotEmpty
+                          ? Center(child: Text(errorMsg,
+                              style: TextStyle(color: Colors.red)))
+                          : displayEpisodes.isEmpty
+                              ? Center(child: Text('No episodes yet',
+                                  style: TextStyle(color: Colors.white38)))
+                              : ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: NeverScrollableScrollPhysics(),
+                                  itemCount: displayEpisodes.length,
+                                  itemBuilder: (context, index) {
+                                    final ep = displayEpisodes[index];
+                                    final epNum = hasAniwatch
+                                        ? ep['number']
+                                        : ep['number'];
+                                    final epTitle = hasAniwatch
+                                        ? (ep['title'] ?? 'Episode $epNum')
+                                        : (ep['title'] ?? 'Episode $epNum');
+                                    return GestureDetector(
+                                      onTap: () => playEpisode(ep, hasAniwatch),
+                                      child: Container(
+                                        margin: EdgeInsets.only(bottom: 8),
                                         decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          color: Color(0xFFE53935).withOpacity(0.15),
+                                          color: Color(0xFF1A1A1A),
+                                          borderRadius: BorderRadius.circular(10),
                                         ),
-                                        child: Center(
-                                          child: Text('${ep['number']}',
-                                            style: TextStyle(
-                                              color: Color(0xFFE53935),
-                                              fontWeight: FontWeight.bold)),
-                                        ),
-                                      ),
-                                      title: Text(ep['title'] ?? 'Episode ${ep['number']}',
-                                        style: TextStyle(color: Colors.white, fontSize: 13)),
-                                      subtitle: Row(
-                                        children: [
-                                          if (ep['duration'] != null && ep['duration'] != 0)
-                                            Text('${ep['duration']} min',
-                                              style: TextStyle(color: Colors.white38, fontSize: 11)),
-                                          if (hasArabic) ...[
-                                            SizedBox(width: 8),
-                                            Container(
-                                              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              decoration: BoxDecoration(
-                                                color: Color(0xFFE53935).withOpacity(0.2),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text('AR',
-                                                style: TextStyle(color: Color(0xFFE53935), fontSize: 10)),
+                                        child: ListTile(
+                                          leading: Container(
+                                            width: 40, height: 40,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color: Color(0xFFE53935).withOpacity(0.15),
                                             ),
-                                          ],
-                                        ],
+                                            child: Center(
+                                              child: Text('$epNum',
+                                                style: TextStyle(color: Color(0xFFE53935),
+                                                  fontWeight: FontWeight.bold)),
+                                            ),
+                                          ),
+                                          title: Text(epTitle,
+                                            style: TextStyle(color: Colors.white, fontSize: 13)),
+                                          trailing: Icon(Icons.play_circle,
+                                            color: Color(0xFFE53935), size: 30),
+                                        ),
                                       ),
-                                      trailing: Icon(Icons.play_circle, color: Color(0xFFE53935), size: 30),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                                    );
+                                  },
+                                ),
                   SizedBox(height: 30),
                 ],
               ),
@@ -292,7 +356,8 @@ class _DetailScreenState extends State<DetailScreen> {
         child: Column(
           children: [
             Text(value,
-              style: TextStyle(color: Color(0xFFE53935), fontSize: 16, fontWeight: FontWeight.bold)),
+              style: TextStyle(color: Color(0xFFE53935), fontSize: 16,
+                fontWeight: FontWeight.bold)),
             SizedBox(height: 4),
             Text(label, style: TextStyle(color: Colors.white54, fontSize: 11)),
           ],
