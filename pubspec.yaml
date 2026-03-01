@@ -7,8 +7,7 @@ version: 1.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
-  
-  
+
 dependencies:
   flutter:
     sdk: flutter
@@ -17,8 +16,7 @@ dependencies:
   video_player: ^2.8.1
   better_player: ^0.0.66
   shimmer: ^3.0.0
-
-
+  url_launcher: ^6.2.2
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
