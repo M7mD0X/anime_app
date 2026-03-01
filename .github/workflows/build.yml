@@ -56,6 +56,7 @@ jobs:
           cp lib/services/api_service.dart temp_app/lib/services/api_service.dart
           cp lib/widgets/shimmer_widget.dart temp_app/lib/widgets/shimmer_widget.dart
           cp pubspec.yaml temp_app/pubspec.yaml
+          cp lib/screens/search_screen.dart temp_app/lib/screens/search_screen.dart
           cp icon.png temp_app/icon.png
           sed -i 's/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">\n    <uses-permission android:name="android.permission.INTERNET"\/>/' temp_app/android/app/src/main/AndroidManifest.xml
           sed -i 's/android:label="anime_mt"/android:label="Anime MT"/' temp_app/android/app/src/main/AndroidManifest.xml
