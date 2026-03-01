@@ -50,46 +50,20 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> playEpisode(Map ep, bool isAniwatch) async {
-    if (isAniwatch) {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => Center(child: CircularProgressIndicator(color: Color(0xFFE53935))),
-      );
-      try {
-        final episodeId = ep['episodeId'] ?? '';
-        final data = await ApiService.aniwatchGetSources('$episodeId&server=hd-1&category=sub');
-        Navigator.pop(context);
-
-        final sources = data['data']?['sources'] as List? ?? [];
-        if (sources.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('No sources found'), backgroundColor: Colors.red));
-          return;
-        }
-
-        final videoUrl = sources[0]['url'] ?? '';
-        Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
-          episode: {
-            'number': ep['number'],
-            'title': ep['title'] ?? '',
-            'video_url': videoUrl,
-            'video_url_arabic': '',
-          },
-          animeTitle: widget.anime['title'] ?? '',
-        )));
-      } catch (e) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load video'), backgroundColor: Colors.red));
-      }
-    } else {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
-        episode: ep,
-        animeTitle: widget.anime['title'] ?? '',
-      )));
-    }
+  if (isAniwatch) {
+    final episodeId = ep['episodeId'] ?? '';
+    Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
+      episode: ep,
+      animeTitle: widget.anime['title'] ?? '',
+      aniwatchEpisodeId: episodeId,
+    )));
+  } else {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
+      episode: ep,
+      animeTitle: widget.anime['title'] ?? '',
+    )));
   }
+}
 
   String getStatus(String? status) {
     switch (status) {
