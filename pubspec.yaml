@@ -7,14 +7,14 @@ version: 1.0.0+1
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
-
+  
 dependencies:
   flutter:
     sdk: flutter
   http: ^1.1.0
   cached_network_image: ^3.3.0
-  video_player: ^2.8.1
-  better_player: ^0.0.66
+  flutter_inappwebview: ^6.0.0
+
 
 dev_dependencies:
   flutter_launcher_icons: ^0.13.1
