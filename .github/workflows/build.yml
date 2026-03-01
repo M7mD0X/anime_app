@@ -41,6 +41,7 @@ jobs:
           flutter create temp_app --project-name anime_mt
           mkdir -p temp_app/lib/screens
           mkdir -p temp_app/lib/services
+          mkdir -p temp_app/lib/widgets
           cp lib/main.dart temp_app/lib/main.dart
           cp lib/screens/splash_screen.dart temp_app/lib/screens/splash_screen.dart
           cp lib/screens/main_screen.dart temp_app/lib/screens/main_screen.dart
@@ -53,6 +54,7 @@ jobs:
           cp lib/screens/detail_screen.dart temp_app/lib/screens/detail_screen.dart
           cp lib/screens/player_screen.dart temp_app/lib/screens/player_screen.dart
           cp lib/services/api_service.dart temp_app/lib/services/api_service.dart
+          cp lib/widgets/shimmer_widget.dart temp_app/lib/widgets/shimmer_widget.dart
           cp pubspec.yaml temp_app/pubspec.yaml
           cp icon.png temp_app/icon.png
           sed -i 's/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">\n    <uses-permission android:name="android.permission.INTERNET"\/>/' temp_app/android/app/src/main/AndroidManifest.xml
