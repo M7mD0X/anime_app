@@ -101,7 +101,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     String package;
     switch (playerType) {
       case 'asd':
-        package = 'com.nis.asdvideoplayer';
+        package = 'com.app_mo.splayer';
         break;
       case 'mx':
         package = 'com.mxtech.videoplayer.ad';
