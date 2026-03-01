@@ -44,7 +44,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   switch (playerType) {
     case 'asd':
       uri = Uri.parse(
-        'intent:$videoUrl#Intent;package=com.nis.asdvideoplayer;S.title=${Uri.encodeComponent(widget.animeTitle)};end'
+        'intent:$videoUrl#Intent;package=com.app_mo.splayer;S.title=${Uri.encodeComponent(widget.animeTitle)};end'
       );
       playerName = 'ASD Player';
       break;
