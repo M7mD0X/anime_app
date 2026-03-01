@@ -82,64 +82,38 @@ class _LatestScreenState extends State<LatestScreen> {
     final airing = animeList.where((a) => a['status'] == 'airing').toList();
     final finished = animeList.where((a) => a['status'] == 'finished').toList();
 
-    return Scaffold(
-      backgroundColor: Color(0xFF0D0D0D),
-      body: isLoading
-          ? _buildShimmer()
-          : RefreshIndicator(
-              color: Color(0xFFE53935),
-              onRefresh: fetchAnime,
-              child: CustomScrollView(
-                slivers: [
-                  SliverAppBar(
-                    backgroundColor: Color(0xFF0D0D0D),
-                    floating: true,
-                    title: Row(
-                      children: [
-                        Container(
-                          width: 28, height: 28,
-                          decoration: BoxDecoration(
-                            color: Color(0xFFE53935),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Icon(Icons.play_arrow, color: Colors.white, size: 18),
-                        ),
-                        SizedBox(width: 8),
-                        Text('Anime MT',
-                          style: TextStyle(color: Colors.white, fontSize: 18,
-                            fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                  ),
-                  SliverToBoxAdapter(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (bannerList.isNotEmpty) _buildBanner(),
-                        SizedBox(height: 24),
-                        if (airing.isNotEmpty) ...[
-                          _sectionHeader('🔥 Currently Airing', airing.length),
-                          SizedBox(height: 12),
-                          _buildHorizontalList(airing),
-                          SizedBox(height: 24),
-                        ],
-                        if (finished.isNotEmpty) ...[
-                          _sectionHeader('✅ Finished', finished.length),
-                          SizedBox(height: 12),
-                          _buildHorizontalList(finished),
-                          SizedBox(height: 24),
-                        ],
-                        _sectionHeader('📺 All Anime', animeList.length),
-                        SizedBox(height: 12),
-                        _buildListView(animeList),
-                        SizedBox(height: 20),
-                      ],
-                    ),
-                  ),
+    return isLoading
+        ? _buildShimmer()
+        : RefreshIndicator(
+            color: Color(0xFFE53935),
+            onRefresh: fetchAnime,
+            child: SingleChildScrollView(
+              physics: AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (bannerList.isNotEmpty) _buildBanner(),
+                  SizedBox(height: 24),
+                  if (airing.isNotEmpty) ...[
+                    _sectionHeader('🔥 Currently Airing', airing.length),
+                    SizedBox(height: 12),
+                    _buildHorizontalList(airing),
+                    SizedBox(height: 24),
+                  ],
+                  if (finished.isNotEmpty) ...[
+                    _sectionHeader('✅ Finished', finished.length),
+                    SizedBox(height: 12),
+                    _buildHorizontalList(finished),
+                    SizedBox(height: 24),
+                  ],
+                  _sectionHeader('📺 All Anime', animeList.length),
+                  SizedBox(height: 12),
+                  _buildListView(animeList),
+                  SizedBox(height: 20),
                 ],
               ),
             ),
-    );
+          );
   }
 
   Widget _buildBanner() {
