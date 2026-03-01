@@ -115,27 +115,20 @@ class _LatestScreenState extends State<LatestScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Banner
                         if (bannerList.isNotEmpty) _buildBanner(),
                         SizedBox(height: 24),
-
-                        // Airing
                         if (airing.isNotEmpty) ...[
                           _sectionHeader('🔥 Currently Airing', airing.length),
                           SizedBox(height: 12),
                           _buildHorizontalList(airing),
                           SizedBox(height: 24),
                         ],
-
-                        // Finished
                         if (finished.isNotEmpty) ...[
                           _sectionHeader('✅ Finished', finished.length),
                           SizedBox(height: 12),
                           _buildHorizontalList(finished),
                           SizedBox(height: 24),
                         ],
-
-                        // All Anime
                         _sectionHeader('📺 All Anime', animeList.length),
                         SizedBox(height: 12),
                         _buildListView(animeList),
@@ -150,106 +143,112 @@ class _LatestScreenState extends State<LatestScreen> {
   }
 
   Widget _buildBanner() {
-    return SizedBox(
-      height: 220,
-      child: Stack(
-        children: [
-          PageView.builder(
-            controller: _bannerController,
-            onPageChanged: (i) => setState(() => currentBanner = i),
-            itemCount: bannerList.length,
-            itemBuilder: (context, index) {
-              final anime = bannerList[index];
-              final img = (anime['banner'] ?? '').isNotEmpty
-                  ? anime['banner']
-                  : anime['cover'] ?? '';
-              return GestureDetector(
-                onTap: () => Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => DetailScreen(anime: anime))),
-                child: Stack(
-                  children: [
-                    CachedNetworkImage(
-                      imageUrl: img,
-                      width: double.infinity,
-                      height: 220,
-                      fit: BoxFit.cover,
-                      errorWidget: (c, e, s) => Container(
-                        color: Color(0xFF1A1A1A),
-                        child: Icon(Icons.movie, color: Colors.grey, size: 50)),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.transparent, Colors.black87],
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: SizedBox(
+          height: 220,
+          child: Stack(
+            children: [
+              PageView.builder(
+                controller: _bannerController,
+                onPageChanged: (i) => setState(() => currentBanner = i),
+                itemCount: bannerList.length,
+                itemBuilder: (context, index) {
+                  final anime = bannerList[index];
+                  final img = (anime['banner'] ?? '').isNotEmpty
+                      ? anime['banner']
+                      : anime['cover'] ?? '';
+                  return GestureDetector(
+                    onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => DetailScreen(anime: anime))),
+                    child: Stack(
+                      children: [
+                        CachedNetworkImage(
+                          imageUrl: img,
+                          width: double.infinity,
+                          height: 220,
+                          fit: BoxFit.cover,
+                          errorWidget: (c, e, s) => Container(
+                            color: Color(0xFF1A1A1A),
+                            child: Icon(Icons.movie, color: Colors.grey, size: 50)),
                         ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 16, left: 16, right: 60,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: getStatusColor(anime['status']),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(getStatus(anime['status']),
-                              style: TextStyle(color: Colors.white, fontSize: 10,
-                                fontWeight: FontWeight.bold)),
-                          ),
-                          SizedBox(height: 6),
-                          Text(anime['title'] ?? '',
-                            style: TextStyle(color: Colors.white, fontSize: 18,
-                              fontWeight: FontWeight.bold),
-                            maxLines: 1, overflow: TextOverflow.ellipsis),
-                          if ((anime['title_arabic'] ?? '').isNotEmpty)
-                            Text(anime['title_arabic'],
-                              style: TextStyle(color: Colors.white60, fontSize: 12),
-                              textDirection: TextDirection.rtl,
-                              maxLines: 1, overflow: TextOverflow.ellipsis),
-                        ],
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 20, right: 16,
-                      child: GestureDetector(
-                        onTap: () => Navigator.push(context,
-                          MaterialPageRoute(builder: (_) => DetailScreen(anime: anime))),
-                        child: Container(
-                          padding: EdgeInsets.all(10),
+                        Container(
                           decoration: BoxDecoration(
-                            color: Color(0xFFE53935),
-                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.transparent, Colors.black87],
+                            ),
                           ),
-                          child: Icon(Icons.play_arrow, color: Colors.white, size: 20),
                         ),
-                      ),
+                        Positioned(
+                          bottom: 16, left: 16, right: 60,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: getStatusColor(anime['status']),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(getStatus(anime['status']),
+                                  style: TextStyle(color: Colors.white, fontSize: 10,
+                                    fontWeight: FontWeight.bold)),
+                              ),
+                              SizedBox(height: 6),
+                              Text(anime['title'] ?? '',
+                                style: TextStyle(color: Colors.white, fontSize: 18,
+                                  fontWeight: FontWeight.bold),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                              if ((anime['title_arabic'] ?? '').isNotEmpty)
+                                Text(anime['title_arabic'],
+                                  style: TextStyle(color: Colors.white60, fontSize: 12),
+                                  textDirection: TextDirection.rtl,
+                                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 20, right: 16,
+                          child: GestureDetector(
+                            onTap: () => Navigator.push(context,
+                              MaterialPageRoute(builder: (_) => DetailScreen(anime: anime))),
+                            child: Container(
+                              padding: EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Color(0xFFE53935),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(Icons.play_arrow, color: Colors.white, size: 20),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  );
+                },
+              ),
+              Positioned(
+                bottom: 8, left: 0, right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(bannerList.length, (i) => Container(
+                    margin: EdgeInsets.symmetric(horizontal: 3),
+                    width: i == currentBanner ? 20 : 6,
+                    height: 6,
+                    decoration: BoxDecoration(
+                      color: i == currentBanner ? Color(0xFFE53935) : Colors.white30,
+                      borderRadius: BorderRadius.circular(3),
+                    ),
+                  )),
                 ),
-              );
-            },
+              ),
+            ],
           ),
-          Positioned(
-            bottom: 8, left: 0, right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(bannerList.length, (i) => Container(
-                margin: EdgeInsets.symmetric(horizontal: 3),
-                width: i == currentBanner ? 20 : 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: i == currentBanner ? Color(0xFFE53935) : Colors.white30,
-                  borderRadius: BorderRadius.circular(3),
-                ),
-              )),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -386,8 +385,7 @@ class _LatestScreenState extends State<LatestScreen> {
                             Text(getStatus(anime['status']),
                               style: TextStyle(color: Colors.white54, fontSize: 11)),
                             SizedBox(width: 10),
-                            Icon(Icons.play_circle_outline,
-                              color: Colors.white38, size: 13),
+                            Icon(Icons.play_circle_outline, color: Colors.white38, size: 13),
                             SizedBox(width: 4),
                             Text('${anime['episodes_count'] ?? 0} eps',
                               style: TextStyle(color: Colors.white38, fontSize: 11)),
