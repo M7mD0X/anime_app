@@ -32,66 +32,69 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> openInPlayer(String playerType) async {
-    if (videoUrl == null || videoUrl!.isEmpty) {
+  if (videoUrl == null || videoUrl!.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No video URL available'), backgroundColor: Colors.red));
+    return;
+  }
+
+  Uri uri;
+  String playerName;
+
+  switch (playerType) {
+    case 'asd':
+      uri = Uri.parse(
+        'intent:$videoUrl#Intent;package=com.nis.asdvideoplayer;S.title=${Uri.encodeComponent(widget.animeTitle)};end'
+      );
+      playerName = 'ASD Player';
+      break;
+    case 'mx':
+      uri = Uri.parse(
+        'intent:$videoUrl#Intent;package=com.mxtech.videoplayer.ad;S.title=${Uri.encodeComponent(widget.animeTitle)};end'
+      );
+      playerName = 'MX Player';
+      break;
+    case 'vlc':
+      uri = Uri.parse('vlc://$videoUrl');
+      playerName = 'VLC Player';
+      break;
+    default:
+      uri = Uri.parse(videoUrl!);
+      playerName = 'Default Player';
+  }
+
+  try {
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('No video URL available'),
-          backgroundColor: Colors.red,
+          content: Text('$playerName is not installed'),
+          backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        ),
-      );
-      return;
-    }
-
-    Uri uri;
-    String playerName;
-
-    switch (playerType) {
-      case 'asd':
-        uri = Uri.parse('asd://$videoUrl');
-        playerName = 'ASD Player';
-        break;
-      case 'mx':
-        uri = Uri.parse('intent:$videoUrl#Intent;package=com.mxtech.videoplayer.ad;end');
-        playerName = 'MX Player';
-        break;
-      case 'vlc':
-        uri = Uri.parse('vlc://$videoUrl');
-        playerName = 'VLC Player';
-        break;
-      default:
-        uri = Uri.parse(videoUrl!);
-        playerName = 'Default Player';
-    }
-
-    try {
-      final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-      if (!launched) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$playerName is not installed'),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            action: SnackBarAction(
-              label: 'Install',
-              textColor: Colors.white,
-              onPressed: () => _openPlayStore(playerType),
-            ),
+          action: SnackBarAction(
+            label: 'Install',
+            textColor: Colors.white,
+            onPressed: () => _openPlayStore(playerType),
           ),
-        );
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to open player'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         ),
       );
     }
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$playerName is not installed'),
+        backgroundColor: Colors.orange,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        action: SnackBarAction(
+          label: 'Install',
+          textColor: Colors.white,
+          onPressed: () => _openPlayStore(playerType),
+        ),
+      ),
+    );
+  }
   }
 
   Future<void> _openPlayStore(String playerType) async {
