@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:shimmer/shimmer.dart';
 import '../services/api_service.dart';
 import '../widgets/shimmer_widget.dart';
 import 'detail_screen.dart';
