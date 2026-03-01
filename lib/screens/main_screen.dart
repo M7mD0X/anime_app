@@ -26,37 +26,54 @@ class _MainScreenState extends State<MainScreen> {
     SettingsScreen(),
   ];
 
+  final List<Map> _menuItems = [
+    {'icon': Icons.home_outlined, 'activeIcon': Icons.home, 'label': 'Home'},
+    {'icon': Icons.movie_outlined, 'activeIcon': Icons.movie, 'label': 'Anime'},
+    {'icon': Icons.bookmark_outline, 'activeIcon': Icons.bookmark, 'label': 'Library'},
+    {'icon': Icons.history, 'activeIcon': Icons.history, 'label': 'History'},
+    {'icon': Icons.download_outlined, 'activeIcon': Icons.download, 'label': 'Downloads'},
+    {'icon': Icons.settings_outlined, 'activeIcon': Icons.settings, 'label': 'Settings'},
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Color(0xFF0D0D0D),
-      body: _screens[_currentIndex],
-      drawer: _buildDrawer(),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Color(0xFFE53935),
-        mini: true,
-        child: Icon(Icons.search, color: Colors.white),
-        onPressed: () => Navigator.push(context,
-          MaterialPageRoute(builder: (_) => SearchScreen())),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        backgroundColor: Color(0xFF1A1A1A),
-        selectedItemColor: Color(0xFFE53935),
-        unselectedItemColor: Colors.white38,
-        type: BottomNavigationBarType.fixed,
-        selectedFontSize: 11,
-        unselectedFontSize: 11,
-        items: [
-          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.movie_outlined), activeIcon: Icon(Icons.movie), label: 'Anime'),
-          BottomNavigationBarItem(icon: Icon(Icons.bookmark_outline), activeIcon: Icon(Icons.bookmark), label: 'Library'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'History'),
-          BottomNavigationBarItem(icon: Icon(Icons.download_outlined), activeIcon: Icon(Icons.download), label: 'Downloads'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings_outlined), activeIcon: Icon(Icons.settings), label: 'Settings'),
+      appBar: AppBar(
+        backgroundColor: Color(0xFF0D0D0D),
+        elevation: 0,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(Icons.menu, color: Colors.white),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(
+                color: Color(0xFFE53935),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Icon(Icons.play_arrow, color: Colors.white, size: 18),
+            ),
+            SizedBox(width: 8),
+            Text('Anime MT',
+              style: TextStyle(color: Colors.white, fontSize: 18,
+                fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          IconButton(
+            icon: Icon(Icons.search, color: Colors.white),
+            onPressed: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => SearchScreen())),
+          ),
         ],
       ),
+      drawer: _buildDrawer(),
+      body: _screens[_currentIndex],
     );
   }
 
@@ -93,42 +110,53 @@ class _MainScreenState extends State<MainScreen> {
               ),
             ),
             Divider(color: Colors.white12),
-            _drawerItem(Icons.home, 'Home', 0),
-            _drawerItem(Icons.movie, 'Anime List', 1),
-            _drawerItem(Icons.bookmark, 'Library', 2),
-            _drawerItem(Icons.history, 'History', 3),
-            _drawerItem(Icons.download, 'Downloads', 4),
-            _drawerItem(Icons.settings, 'Settings', 5),
-            Spacer(),
+            Expanded(
+              child: ListView.builder(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                itemCount: _menuItems.length,
+                itemBuilder: (context, index) {
+                  final item = _menuItems[index];
+                  final isSelected = _currentIndex == index;
+                  return Container(
+                    margin: EdgeInsets.only(bottom: 4),
+                    child: ListTile(
+                      leading: Icon(
+                        isSelected ? item['activeIcon'] : item['icon'],
+                        color: isSelected ? Color(0xFFE53935) : Colors.white54,
+                      ),
+                      title: Text(item['label'],
+                        style: TextStyle(
+                          color: isSelected ? Color(0xFFE53935) : Colors.white70,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                        )),
+                      selected: isSelected,
+                      selectedTileColor: Color(0xFFE53935).withOpacity(0.08),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                      onTap: () {
+                        setState(() => _currentIndex = index);
+                        Navigator.pop(context);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
             Divider(color: Colors.white12),
             Padding(
               padding: EdgeInsets.all(16),
-              child: Text('Anime MT v1.0',
-                style: TextStyle(color: Colors.white24, fontSize: 12)),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: Colors.white24, size: 14),
+                  SizedBox(width: 6),
+                  Text('Anime MT v1.0',
+                    style: TextStyle(color: Colors.white24, fontSize: 12)),
+                ],
+              ),
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _drawerItem(IconData icon, String label, int index) {
-    final isSelected = _currentIndex == index;
-    return ListTile(
-      leading: Icon(icon,
-        color: isSelected ? Color(0xFFE53935) : Colors.white54),
-      title: Text(label,
-        style: TextStyle(
-          color: isSelected ? Color(0xFFE53935) : Colors.white70,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-        )),
-      selected: isSelected,
-      selectedTileColor: Color(0xFFE53935).withOpacity(0.08),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      onTap: () {
-        setState(() => _currentIndex = index);
-        Navigator.pop(context);
-      },
     );
   }
 }
