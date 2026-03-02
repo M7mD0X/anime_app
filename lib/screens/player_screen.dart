@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:android_intent_plus/android_intent.dart';
 
@@ -31,72 +32,86 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> openInPlayer(String playerType) async {
-  if (videoUrl == null || videoUrl!.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No video URL available'), backgroundColor: Colors.red));
-    return;
-  }
-
-  String playerName;
-  String package;
-
-  switch (playerType) {
-    case 'mx':
-      playerName = 'MX Player';
-      package = 'com.mxtech.videoplayer.ad';
-      try {
-        final intent = AndroidIntent(
-          action: 'action_view',
-          data: videoUrl,
-          type: 'video/*',
-          package: package,
-          arguments: {
-            'title': widget.animeTitle,
-            'sticky': false,
-            'headers': 'Referer\rhttps://hianime.to\r\nOrigin\rhttps://hianime.to\r\nUser-Agent\rMozilla/5.0\r\n',
-          },
-        );
-        await intent.launch();
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$playerName is not installed'),
-            backgroundColor: Colors.orange,
-            action: SnackBarAction(label: 'Install', textColor: Colors.white,
-              onPressed: () => _openPlayStore('mx')),
-          ),
-        );
-      }
+    if (videoUrl == null || videoUrl!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No video URL available'), backgroundColor: Colors.red));
       return;
-    case 'asd':
-      playerName = 'ASD Player';
-      package = 'com.app_mo.splayer';
-      break;
-    default:
-      playerName = 'Player';
-      package = '';
-  }
+    }
 
-  try {
-    final intent = AndroidIntent(
-      action: 'action_view',
-      data: videoUrl,
-      type: 'video/*',
-      package: package,
-      arguments: {'title': widget.animeTitle},
-    );
-    await intent.launch();
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$playerName is not installed'),
-        backgroundColor: Colors.orange,
-        action: SnackBarAction(label: 'Install', textColor: Colors.white,
-          onPressed: () => _openPlayStore(playerType)),
-      ),
-    );
+    String playerName;
+    String package;
+
+    switch (playerType) {
+      case 'mx':
+        playerName = 'MX Player';
+        package = 'com.mxtech.videoplayer.ad';
+        try {
+          final intent = AndroidIntent(
+            action: 'action_view',
+            data: videoUrl,
+            type: 'video/*',
+            package: package,
+            arguments: {
+              'title': widget.animeTitle,
+              'sticky': false,
+              'headers': 'Referer\rhttps://hianime.to\r\nOrigin\rhttps://hianime.to\r\nUser-Agent\rMozilla/5.0\r\n',
+            },
+          );
+          await intent.launch();
+        } catch (e) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$playerName is not installed'),
+              backgroundColor: Colors.orange,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              action: SnackBarAction(
+                label: 'Install',
+                textColor: Colors.white,
+                onPressed: () => _openPlayStore('mx'),
+              ),
+            ),
+          );
+        }
+        return;
+      case 'asd':
+        playerName = 'ASD Player';
+        package = 'com.app_mo.splayer';
+        break;
+      case 'vlc':
+        playerName = 'VLC Player';
+        package = 'org.videolan.vlc';
+        break;
+      default:
+        playerName = 'Player';
+        package = '';
+    }
+
+    try {
+      final intent = AndroidIntent(
+        action: 'action_view',
+        data: videoUrl,
+        type: 'video/*',
+        package: package,
+        arguments: {'title': widget.animeTitle},
+      );
+      await intent.launch();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$playerName is not installed'),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          action: SnackBarAction(
+            label: 'Install',
+            textColor: Colors.white,
+            onPressed: () => _openPlayStore(playerType),
+          ),
+        ),
+      );
+    }
   }
-}
 
   Future<void> _openPlayStore(String playerType) async {
     String package;
@@ -242,15 +257,38 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
                   fontWeight: FontWeight.bold)),
               SizedBox(height: 8),
-              Container(
-                padding: EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.circular(10),
+              GestureDetector(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: videoUrl!));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('URL copied!'),
+                      backgroundColor: Colors.green,
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                },
+                child: Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(videoUrl!,
+                          style: TextStyle(color: Colors.white38, fontSize: 11),
+                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(Icons.copy, color: Colors.white38, size: 16),
+                    ],
+                  ),
                 ),
-                child: Text(videoUrl!,
-                  style: TextStyle(color: Colors.white38, fontSize: 11),
-                  maxLines: 2, overflow: TextOverflow.ellipsis),
               ),
             ],
           ],
