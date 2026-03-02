@@ -64,7 +64,14 @@ class _PlayerScreenState extends State<PlayerScreen> {
         data: videoUrl,
         type: 'video/*',
         package: package,
-        arguments: {'title': widget.animeTitle},
+        arguments: {
+          'title': widget.animeTitle,
+          'headers': [
+            'Referer', 'https://hianime.to',
+            'User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+            'Origin', 'https://hianime.to',
+          ],
+        },
       );
       await intent.launch();
     } catch (e) {
@@ -132,7 +139,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Episode Info
             Container(
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -174,7 +180,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
             SizedBox(height: 24),
 
-            // Choose Language
             if (hasArabic) ...[
               Text('Language',
                 style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
@@ -196,7 +201,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
               SizedBox(height: 24),
             ],
 
-            // Choose Player
             Text('Choose Player',
               style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
                 fontWeight: FontWeight.bold)),
@@ -226,7 +230,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
             ),
             SizedBox(height: 24),
 
-            // Video URL
             if (videoUrl != null) ...[
               Text('Video URL',
                 style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
