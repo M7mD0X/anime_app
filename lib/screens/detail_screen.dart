@@ -25,7 +25,6 @@ class _DetailScreenState extends State<DetailScreen> {
 
   Future<void> fetchEpisodes() async {
     final aniwatchId = widget.anime['aniwatch_id'] ?? '';
-
     try {
       if (aniwatchId.isNotEmpty) {
         final data = await ApiService.aniwatchGetEpisodes(aniwatchId);
@@ -58,18 +57,19 @@ class _DetailScreenState extends State<DetailScreen> {
       );
       try {
         final episodeId = ep['episodeId'] ?? '';
-        final data = await ApiService.aniwatchGetSources('$episodeId&server=hd-2&category=dub');
-        Navigator.pop(context);
-
+        final data = await ApiService.aniwatchGetSources('$episodeId&server=hd-1&category=sub');
         final sources = data['data']?['sources'] as List? ?? [];
+
         if (sources.isEmpty) {
+          Navigator.pop(context);
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('No sources found'), backgroundColor: Colors.red));
           return;
         }
 
         final rawUrl = sources[0]['url'] ?? '';
-        final videoUrl = 'https://aniwatch-api-two-rosy.vercel.app/proxy/m3u8?url=${Uri.encodeQueryComponent(rawUrl)}';
+        final videoUrl = await ApiService.storeProxyUrl(rawUrl);
+        Navigator.pop(context);
 
         Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
           episode: {
