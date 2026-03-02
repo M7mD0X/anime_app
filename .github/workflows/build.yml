@@ -38,7 +38,7 @@ jobs:
 
       - name: Build project
         run: |
-          flutter create temp_app --project-name anime_mt
+          flutter create temp_app --project-name anime_mt --org com.animemt
           mkdir -p temp_app/lib/screens
           mkdir -p temp_app/lib/services
           mkdir -p temp_app/lib/widgets
@@ -53,10 +53,10 @@ jobs:
           cp lib/screens/settings_screen.dart temp_app/lib/screens/settings_screen.dart
           cp lib/screens/detail_screen.dart temp_app/lib/screens/detail_screen.dart
           cp lib/screens/player_screen.dart temp_app/lib/screens/player_screen.dart
+          cp lib/screens/search_screen.dart temp_app/lib/screens/search_screen.dart
           cp lib/services/api_service.dart temp_app/lib/services/api_service.dart
           cp lib/widgets/shimmer_widget.dart temp_app/lib/widgets/shimmer_widget.dart
           cp pubspec.yaml temp_app/pubspec.yaml
-          cp lib/screens/search_screen.dart temp_app/lib/screens/search_screen.dart
           cp icon.png temp_app/icon.png
           sed -i 's/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">\n    <uses-permission android:name="android.permission.INTERNET"\/>/' temp_app/android/app/src/main/AndroidManifest.xml
           sed -i 's/android:label="anime_mt"/android:label="Anime MT"/' temp_app/android/app/src/main/AndroidManifest.xml
@@ -64,6 +64,7 @@ jobs:
           flutter pub get
           dart run flutter_launcher_icons
           flutter build apk --release
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/AnimeMT.apk
 
       - name: Set version
         run: echo "VERSION=1.0.${{ github.run_number }}" >> $GITHUB_ENV
@@ -74,6 +75,6 @@ jobs:
           tag_name: v${{ env.VERSION }}
           name: "Anime MT v${{ env.VERSION }}"
           body: "${{ github.event.inputs.version_note }}"
-          files: temp_app/build/app/outputs/flutter-apk/app-release.apk
+          files: temp_app/build/app/outputs/flutter-apk/AnimeMT.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
