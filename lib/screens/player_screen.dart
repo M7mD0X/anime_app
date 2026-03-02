@@ -31,65 +31,72 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> openInPlayer(String playerType) async {
-    if (videoUrl == null || videoUrl!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No video URL available'), backgroundColor: Colors.red));
-      return;
-    }
-
-    String playerName;
-    String package;
-
-    switch (playerType) {
-      case 'asd':
-        playerName = 'ASD Player';
-        package = 'com.app_mo.splayer';
-        break;
-      case 'mx':
-        playerName = 'MX Player';
-        package = 'com.mxtech.videoplayer.ad';
-        break;
-      case 'vlc':
-        playerName = 'VLC Player';
-        package = 'org.videolan.vlc';
-        break;
-      default:
-        playerName = 'Player';
-        package = '';
-    }
-
-    try {
-      final intent = AndroidIntent(
-        action: 'action_view',
-        data: videoUrl,
-        type: 'video/*',
-        package: package,
-        arguments: {
-          'title': widget.animeTitle,
-          'headers': [
-            'Referer', 'https://hianime.to',
-            'User-Agent', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-            'Origin', 'https://hianime.to',
-          ],
-        },
-      );
-      await intent.launch();
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$playerName is not installed'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          action: SnackBarAction(
-            label: 'Install',
-            textColor: Colors.white,
-            onPressed: () => _openPlayStore(playerType),
-          ),
-        ),
-      );
-    }
+  if (videoUrl == null || videoUrl!.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('No video URL available'), backgroundColor: Colors.red));
+    return;
   }
+
+  String playerName;
+  String package;
+
+  switch (playerType) {
+    case 'mx':
+      playerName = 'MX Player';
+      package = 'com.mxtech.videoplayer.ad';
+      try {
+        final intent = AndroidIntent(
+          action: 'action_view',
+          data: videoUrl,
+          type: 'video/*',
+          package: package,
+          arguments: {
+            'title': widget.animeTitle,
+            'sticky': false,
+            'headers': 'Referer\rhttps://hianime.to\r\nOrigin\rhttps://hianime.to\r\nUser-Agent\rMozilla/5.0\r\n',
+          },
+        );
+        await intent.launch();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('$playerName is not installed'),
+            backgroundColor: Colors.orange,
+            action: SnackBarAction(label: 'Install', textColor: Colors.white,
+              onPressed: () => _openPlayStore('mx')),
+          ),
+        );
+      }
+      return;
+    case 'asd':
+      playerName = 'ASD Player';
+      package = 'com.app_mo.splayer';
+      break;
+    default:
+      playerName = 'Player';
+      package = '';
+  }
+
+  try {
+    final intent = AndroidIntent(
+      action: 'action_view',
+      data: videoUrl,
+      type: 'video/*',
+      package: package,
+      arguments: {'title': widget.animeTitle},
+    );
+    await intent.launch();
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('$playerName is not installed'),
+        backgroundColor: Colors.orange,
+        action: SnackBarAction(label: 'Install', textColor: Colors.white,
+          onPressed: () => _openPlayStore(playerType)),
+      ),
+    );
+  }
+}
 
   Future<void> _openPlayStore(String playerType) async {
     String package;
