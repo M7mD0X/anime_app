@@ -1,75 +1,60 @@
-import 'package:http/http.dart' as http;
 import 'dart:convert';
-
-const String BASE_URL = 'https://anime-mt-server.onrender.com';
-const String ANIWATCH_URL = 'https://aniwatch-api-two-rosy.vercel.app/api/v2/hianime';
+import 'package:http/http.dart' as http;
 
 class ApiService {
-  // ===== Our Server =====
-  static Future<Map> getAnimeList({int page = 1, int limit = 20}) async {
-    final response = await http.get(
-      Uri.parse('$BASE_URL/anime?page=$page&limit=$limit'),
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(utf8.decode(response.bodyBytes));
-    }
-    throw Exception('Failed to load anime');
+  static const String baseUrl = 'https://anime-mt-server.onrender.com';
+  static const String aniwatchUrl = 'https://aniwatch-api-two-rosy.vercel.app';
+
+  static Future<Map<String, dynamic>> getAnimeList({int limit = 20, int skip = 0}) async {
+    final response = await http.get(Uri.parse('$baseUrl/anime?limit=$limit&skip=$skip'));
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Failed to load anime list');
   }
 
-  static Future<Map> getAnimeDetails(String id) async {
-    final response = await http.get(Uri.parse('$BASE_URL/anime/$id'));
-    if (response.statusCode == 200) {
-      return jsonDecode(utf8.decode(response.bodyBytes));
-    }
-    throw Exception('Failed to load anime details');
-  }
-
-  static Future<Map> getEpisodes(String animeId) async {
-    final response = await http.get(Uri.parse('$BASE_URL/episodes/$animeId'));
-    if (response.statusCode == 200) {
-      return jsonDecode(utf8.decode(response.bodyBytes));
-    }
-    throw Exception('Failed to load episodes');
-  }
-
-  static Future<Map> searchAnime(String query) async {
-    final response = await http.get(
-      Uri.parse('$BASE_URL/anime/search?q=${Uri.encodeComponent(query)}'),
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(utf8.decode(response.bodyBytes));
-    }
+  static Future<Map<String, dynamic>> searchAnime(String query) async {
+    final response = await http.get(Uri.parse('$baseUrl/anime/search?q=${Uri.encodeComponent(query)}'));
+    if (response.statusCode == 200) return jsonDecode(response.body);
     throw Exception('Failed to search anime');
   }
 
-  // ===== Aniwatch API =====
-  static Future<Map> aniwatchSearch(String query) async {
-    final response = await http.get(
-      Uri.parse('$ANIWATCH_URL/search?q=${Uri.encodeComponent(query)}'),
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(utf8.decode(response.bodyBytes));
-    }
-    throw Exception('Failed to search aniwatch');
+  static Future<Map<String, dynamic>> getAnimeById(String id) async {
+    final response = await http.get(Uri.parse('$baseUrl/anime/$id'));
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Failed to load anime');
   }
 
-  static Future<Map> aniwatchGetEpisodes(String animeId) async {
-    final response = await http.get(
-      Uri.parse('$ANIWATCH_URL/anime/$animeId/episodes'),
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(utf8.decode(response.bodyBytes));
-    }
+  static Future<Map<String, dynamic>> getEpisodes(String animeId) async {
+    final response = await http.get(Uri.parse('$baseUrl/episodes/$animeId'));
+    if (response.statusCode == 200) return jsonDecode(response.body);
     throw Exception('Failed to load episodes');
   }
 
-  static Future<Map> aniwatchGetSources(String episodeId) async {
+  static Future<Map<String, dynamic>> aniwatchGetEpisodes(String aniwatchId) async {
     final response = await http.get(
-      Uri.parse('$ANIWATCH_URL/episode/sources?animeEpisodeId=$episodeId'),
+      Uri.parse('$aniwatchUrl/api/v2/hianime/anime/$aniwatchId/episodes'),
+    );
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Failed to load aniwatch episodes');
+  }
+
+  static Future<Map<String, dynamic>> aniwatchGetSources(String episodeId) async {
+    final response = await http.get(
+      Uri.parse('$aniwatchUrl/api/v2/hianime/episode/sources?animeEpisodeId=$episodeId'),
+    );
+    if (response.statusCode == 200) return jsonDecode(response.body);
+    throw Exception('Failed to load sources');
+  }
+
+  static Future<String> storeProxyUrl(String videoUrl) async {
+    final response = await http.post(
+      Uri.parse('$aniwatchUrl/proxy/store'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'url': videoUrl}),
     );
     if (response.statusCode == 200) {
-      return jsonDecode(utf8.decode(response.bodyBytes));
+      final data = jsonDecode(response.body);
+      return '$aniwatchUrl/proxy/play/${data['token']}';
     }
-    throw Exception('Failed to load sources');
+    throw Exception('Failed to store URL');
   }
 }
