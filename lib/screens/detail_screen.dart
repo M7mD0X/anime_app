@@ -58,7 +58,7 @@ class _DetailScreenState extends State<DetailScreen> {
       );
       try {
         final episodeId = ep['episodeId'] ?? '';
-        final data = await ApiService.aniwatchGetSources('$episodeId&server=hd-1&category=sub');
+        final data = await ApiService.aniwatchGetSources('$episodeId&server=hd-2&category=dub');
         Navigator.pop(context);
 
         final sources = data['data']?['sources'] as List? ?? [];
