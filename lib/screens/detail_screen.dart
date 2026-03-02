@@ -27,7 +27,7 @@ class _DetailScreenState extends State<DetailScreen> {
     final aniwatchId = widget.anime['aniwatch_id'] ?? '';
     try {
       if (aniwatchId.isNotEmpty) {
-        final data = await ApiService.aniwatchGetSources('$episodeId&server=hd-1&category=sub');
+        final data = await ApiService.aniwatchGetEpisodes(aniwatchId);
         final eps = data['data']?['episodes'] as List? ?? [];
         setState(() {
           aniwatchEpisodes = eps;
