@@ -95,28 +95,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ),
     );
   }
-  }
+}
 
-  Future<void> _openPlayStore(String playerType) async {
-    String package;
-    switch (playerType) {
-      case 'asd':
-        package = 'com.app_mo.splayer';
-        break;
-      case 'mx':
-        package = 'com.mxtech.videoplayer.ad';
-        break;
-      case 'vlc':
-        package = 'org.videolan.vlc';
-        break;
-      default:
-        return;
-    }
-    await launchUrl(
-      Uri.parse('https://play.google.com/store/apps/details?id=$package'),
-      mode: LaunchMode.externalApplication,
-    );
+Future<void> _openPlayStore(String playerType) async {
+  String package;
+  switch (playerType) {
+    case 'asd':
+      package = 'com.app_mo.splayer';
+      break;
+    case 'mx':
+      package = 'com.mxtech.videoplayer.ad';
+      break;
+    case 'vlc':
+      package = 'org.videolan.vlc';
+      break;
+    default:
+      return;
   }
+  await launchUrl(
+    Uri.parse('https://play.google.com/store/apps/details?id=$package'),
+    mode: LaunchMode.externalApplication,
+  );
+}
 
   @override
   Widget build(BuildContext context) {
