@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:android_intent_plus/android_intent.dart';
 
 class PlayerScreen extends StatefulWidget {
   final Map episode;
@@ -18,9 +19,7 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  bool isLoading = false;
   String? videoUrl;
-  String? errorMsg;
 
   @override
   void initState() {
@@ -32,40 +31,43 @@ class _PlayerScreenState extends State<PlayerScreen> {
   }
 
   Future<void> openInPlayer(String playerType) async {
-  if (videoUrl == null || videoUrl!.isEmpty) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('No video URL available'), backgroundColor: Colors.red));
-    return;
-  }
+    if (videoUrl == null || videoUrl!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No video URL available'), backgroundColor: Colors.red));
+      return;
+    }
 
-  Uri uri;
-  String playerName;
+    String playerName;
+    String package;
 
-  switch (playerType) {
-    case 'asd':
-      uri = Uri.parse(
-        'intent:$videoUrl#Intent;package=com.app_mo.splayer;S.title=${Uri.encodeComponent(widget.animeTitle)};end'
+    switch (playerType) {
+      case 'asd':
+        playerName = 'ASD Player';
+        package = 'com.app_mo.splayer';
+        break;
+      case 'mx':
+        playerName = 'MX Player';
+        package = 'com.mxtech.videoplayer.ad';
+        break;
+      case 'vlc':
+        playerName = 'VLC Player';
+        package = 'org.videolan.vlc';
+        break;
+      default:
+        playerName = 'Player';
+        package = '';
+    }
+
+    try {
+      final intent = AndroidIntent(
+        action: 'action_view',
+        data: videoUrl,
+        type: 'video/*',
+        package: package,
+        arguments: {'title': widget.animeTitle},
       );
-      playerName = 'ASD Player';
-      break;
-    case 'mx':
-      uri = Uri.parse(
-        'intent:$videoUrl#Intent;package=com.mxtech.videoplayer.ad;S.title=${Uri.encodeComponent(widget.animeTitle)};end'
-      );
-      playerName = 'MX Player';
-      break;
-    case 'vlc':
-      uri = Uri.parse('vlc://$videoUrl');
-      playerName = 'VLC Player';
-      break;
-    default:
-      uri = Uri.parse(videoUrl!);
-      playerName = 'Default Player';
-  }
-
-  try {
-    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-    if (!launched) {
+      await intent.launch();
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('$playerName is not installed'),
@@ -80,43 +82,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
         ),
       );
     }
-  } catch (e) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$playerName is not installed'),
-        backgroundColor: Colors.orange,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        action: SnackBarAction(
-          label: 'Install',
-          textColor: Colors.white,
-          onPressed: () => _openPlayStore(playerType),
-        ),
-      ),
+  }
+
+  Future<void> _openPlayStore(String playerType) async {
+    String package;
+    switch (playerType) {
+      case 'asd':
+        package = 'com.app_mo.splayer';
+        break;
+      case 'mx':
+        package = 'com.mxtech.videoplayer.ad';
+        break;
+      case 'vlc':
+        package = 'org.videolan.vlc';
+        break;
+      default:
+        return;
+    }
+    await launchUrl(
+      Uri.parse('https://play.google.com/store/apps/details?id=$package'),
+      mode: LaunchMode.externalApplication,
     );
   }
-}
-
-Future<void> _openPlayStore(String playerType) async {
-  String package;
-  switch (playerType) {
-    case 'asd':
-      package = 'com.app_mo.splayer';
-      break;
-    case 'mx':
-      package = 'com.mxtech.videoplayer.ad';
-      break;
-    case 'vlc':
-      package = 'org.videolan.vlc';
-      break;
-    default:
-      return;
-  }
-  await launchUrl(
-    Uri.parse('https://play.google.com/store/apps/details?id=$package'),
-    mode: LaunchMode.externalApplication,
-  );
-}
 
   @override
   Widget build(BuildContext context) {
@@ -196,12 +183,12 @@ Future<void> _openPlayStore(String playerType) async {
               Row(
                 children: [
                   Expanded(
-                    child: _langButton('🌐 English', true,
+                    child: _langButton('🌐 English',
                       widget.episode['video_url'] ?? ''),
                   ),
                   SizedBox(width: 10),
                   Expanded(
-                    child: _langButton('🇸🇦 عربي', false,
+                    child: _langButton('🇸🇦 عربي',
                       widget.episode['video_url_arabic'] ?? ''),
                   ),
                 ],
@@ -215,31 +202,31 @@ Future<void> _openPlayStore(String playerType) async {
                 fontWeight: FontWeight.bold)),
             SizedBox(height: 12),
             _playerButton(
-              icon: '🎬',
               name: 'ASD Player',
               description: 'Recommended',
               color: Colors.blue,
+              icon: Icons.play_circle_fill,
               onTap: () => openInPlayer('asd'),
             ),
             SizedBox(height: 10),
             _playerButton(
-              icon: '▶️',
               name: 'MX Player',
               description: 'Popular choice',
               color: Colors.orange,
+              icon: Icons.play_circle_fill,
               onTap: () => openInPlayer('mx'),
             ),
             SizedBox(height: 10),
             _playerButton(
-              icon: '🔵',
               name: 'VLC Player',
               description: 'Open source',
               color: Colors.deepOrange,
+              icon: Icons.play_circle_fill,
               onTap: () => openInPlayer('vlc'),
             ),
             SizedBox(height: 24),
 
-            // Video URL info
+            // Video URL
             if (videoUrl != null) ...[
               Text('Video URL',
                 style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
@@ -262,7 +249,7 @@ Future<void> _openPlayStore(String playerType) async {
     );
   }
 
-  Widget _langButton(String label, bool isEnglish, String url) {
+  Widget _langButton(String label, String url) {
     final isSelected = videoUrl == url;
     return GestureDetector(
       onTap: () => setState(() => videoUrl = url),
@@ -287,10 +274,10 @@ Future<void> _openPlayStore(String playerType) async {
   }
 
   Widget _playerButton({
-    required String icon,
     required String name,
     required String description,
     required Color color,
+    required IconData icon,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
@@ -310,9 +297,7 @@ Future<void> _openPlayStore(String playerType) async {
                 color: color.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Center(
-                child: Text(icon, style: TextStyle(fontSize: 22)),
-              ),
+              child: Icon(icon, color: color, size: 26),
             ),
             SizedBox(width: 14),
             Expanded(
