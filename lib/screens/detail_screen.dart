@@ -68,7 +68,7 @@ class _DetailScreenState extends State<DetailScreen> {
           return;
         }
 
-        final videoUrl = 'https://anime-mt-server.onrender.com/proxy/video?url=${Uri.encodeComponent(sources[0]['url'] ?? '')}';
+        final videoUrl = 'https://aniwatch-api-two-rosy.vercel.app/proxy/m3u8?url=${Uri.encodeComponent(sources[0]['url'] ?? '')}';
 
         Navigator.push(context, MaterialPageRoute(builder: (_) => PlayerScreen(
           episode: {
