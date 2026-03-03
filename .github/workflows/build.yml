@@ -75,6 +75,7 @@ jobs:
           git config user.email "github-actions@github.com"
           git add version.txt
           git commit -m "chore: bump version to ${{ env.VERSION }}"
+          git pull --rebase origin main
           git push
 
       - name: Build project
