@@ -11,9 +11,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_localizations:
-    sdk: flutter
-  intl: ^0.18.0
   http: ^1.1.0
   cached_network_image: ^3.3.0
   shimmer: ^3.0.0
@@ -34,4 +31,3 @@ flutter_launcher_icons:
 
 flutter:
   uses-material-design: true
-  generate: true
