@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:android_intent_plus/android_intent.dart';
+import 'package:media_kit/media_kit.dart';
+import 'package:media_kit_video/media_kit_video.dart';
 
 class PlayerScreen extends StatefulWidget {
   final Map episode;
@@ -20,118 +20,81 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
+  late final Player _player;
+  late final VideoController _controller;
+
   String? videoUrl;
+  bool _isFullscreen = false;
+  bool _isLoading = true;
+  bool _hasError = false;
+
+  static const _headers = {
+    'Referer': 'https://hianime.to',
+    'Origin': 'https://hianime.to',
+    'User-Agent': 'Mozilla/5.0 (Linux; Android 10) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36',
+  };
 
   @override
   void initState() {
     super.initState();
-    if (widget.episode['video_url'] != null &&
-        (widget.episode['video_url'] as String).isNotEmpty) {
-      videoUrl = widget.episode['video_url'];
+    _player = Player();
+    _controller = VideoController(_player);
+
+    final url = widget.episode['video_url'];
+    if (url != null && (url as String).isNotEmpty) {
+      videoUrl = url;
+      _playVideo(url);
     }
   }
 
-  Future<void> openInPlayer(String playerType) async {
-    if (videoUrl == null || videoUrl!.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('No video URL available'), backgroundColor: Colors.red));
-      return;
-    }
-
-    String playerName;
-    String package;
-
-    switch (playerType) {
-      case 'mx':
-        playerName = 'MX Player';
-        package = 'com.mxtech.videoplayer.ad';
-        try {
-          final intent = AndroidIntent(
-            action: 'action_view',
-            data: videoUrl,
-            type: 'video/*',
-            package: package,
-            arguments: {
-              'title': widget.animeTitle,
-              'sticky': false,
-              'headers': 'Referer\rhttps://hianime.to\r\nOrigin\rhttps://hianime.to\r\nUser-Agent\rMozilla/5.0\r\n',
-            },
-          );
-          await intent.launch();
-        } catch (e) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('$playerName is not installed'),
-              backgroundColor: Colors.orange,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              action: SnackBarAction(
-                label: 'Install',
-                textColor: Colors.white,
-                onPressed: () => _openPlayStore('mx'),
-              ),
-            ),
-          );
-        }
-        return;
-      case 'asd':
-        playerName = 'ASD Player';
-        package = 'com.app_mo.splayer';
-        break;
-      case 'vlc':
-        playerName = 'VLC Player';
-        package = 'org.videolan.vlc';
-        break;
-      default:
-        playerName = 'Player';
-        package = '';
-    }
-
+  Future<void> _playVideo(String url) async {
+    setState(() {
+      _isLoading = true;
+      _hasError = false;
+    });
     try {
-      final intent = AndroidIntent(
-        action: 'action_view',
-        data: videoUrl,
-        type: 'video/*',
-        package: package,
-        arguments: {'title': widget.animeTitle},
+      await _player.open(
+        Media(url, httpHeaders: _headers),
       );
-      await intent.launch();
+      _player.stream.error.listen((err) {
+        if (mounted && err.isNotEmpty) {
+          setState(() => _hasError = true);
+        }
+      });
+      _player.stream.buffering.listen((buffering) {
+        if (mounted) setState(() => _isLoading = buffering);
+      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$playerName is not installed'),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          action: SnackBarAction(
-            label: 'Install',
-            textColor: Colors.white,
-            onPressed: () => _openPlayStore(playerType),
-          ),
-        ),
-      );
+      if (mounted) setState(() => _hasError = true);
     }
   }
 
-  Future<void> _openPlayStore(String playerType) async {
-    String package;
-    switch (playerType) {
-      case 'asd':
-        package = 'com.app_mo.splayer';
-        break;
-      case 'mx':
-        package = 'com.mxtech.videoplayer.ad';
-        break;
-      case 'vlc':
-        package = 'org.videolan.vlc';
-        break;
-      default:
-        return;
+  void _switchLanguage(String url) {
+    if (url == videoUrl) return;
+    setState(() => videoUrl = url);
+    _playVideo(url);
+  }
+
+  void _toggleFullscreen() {
+    setState(() => _isFullscreen = !_isFullscreen);
+    if (_isFullscreen) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.landscapeLeft,
+        DeviceOrientation.landscapeRight,
+      ]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    } else {
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
-    await launchUrl(
-      Uri.parse('https://play.google.com/store/apps/details?id=$package'),
-      mode: LaunchMode.externalApplication,
-    );
+  }
+
+  @override
+  void dispose() {
+    _player.dispose();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
   }
 
   @override
@@ -140,159 +103,202 @@ class _PlayerScreenState extends State<PlayerScreen> {
     final epTitle = widget.episode['title'] ?? 'Episode $epNumber';
     final hasArabic = (widget.episode['video_url_arabic'] ?? '').isNotEmpty;
 
+    if (_isFullscreen) {
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          children: [
+            Center(child: Video(controller: _controller)),
+            if (_isLoading)
+              const Center(child: CircularProgressIndicator(color: Color(0xFFE53935))),
+            Positioned(
+              top: 16, right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.fullscreen_exit, color: Colors.white),
+                onPressed: _toggleFullscreen,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Scaffold(
-      backgroundColor: Color(0xFF0D0D0D),
+      backgroundColor: const Color(0xFF0D0D0D),
       appBar: AppBar(
-        backgroundColor: Color(0xFF1A1A1A),
-        iconTheme: IconThemeData(color: Colors.white),
+        backgroundColor: const Color(0xFF1A1A1A),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(widget.animeTitle,
-              style: TextStyle(color: Colors.white, fontSize: 14,
+              style: const TextStyle(color: Colors.white, fontSize: 14,
                 fontWeight: FontWeight.bold)),
             Text('Episode $epNumber',
-              style: TextStyle(color: Colors.white54, fontSize: 11)),
+              style: const TextStyle(color: Colors.white54, fontSize: 11)),
           ],
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              padding: EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Color(0xFF1A1A1A),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 50, height: 50,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFE53935).withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Center(
-                      child: Text('$epNumber',
-                        style: TextStyle(color: Color(0xFFE53935),
-                          fontSize: 18, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                  SizedBox(width: 14),
-                  Expanded(
+      body: Column(
+        children: [
+          // Video Player
+          AspectRatio(
+            aspectRatio: 16 / 9,
+            child: Stack(
+              children: [
+                Container(color: Colors.black),
+                if (videoUrl != null)
+                  Video(controller: _controller),
+                if (_isLoading && videoUrl != null)
+                  const Center(
+                    child: CircularProgressIndicator(color: Color(0xFFE53935))),
+                if (_hasError)
+                  Center(
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(widget.animeTitle,
-                          style: TextStyle(color: Colors.white, fontSize: 14,
-                            fontWeight: FontWeight.bold),
-                          maxLines: 1, overflow: TextOverflow.ellipsis),
-                        SizedBox(height: 4),
-                        Text(epTitle,
-                          style: TextStyle(color: Colors.white54, fontSize: 12),
-                          maxLines: 2, overflow: TextOverflow.ellipsis),
+                        const Icon(Icons.error_outline, color: Colors.red, size: 40),
+                        const SizedBox(height: 8),
+                        const Text('Failed to load video',
+                          style: TextStyle(color: Colors.white54)),
+                        TextButton(
+                          onPressed: () => _playVideo(videoUrl!),
+                          child: const Text('Retry',
+                            style: TextStyle(color: Color(0xFFE53935))),
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(height: 24),
-
-            if (hasArabic) ...[
-              Text('Language',
-                style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
-                  fontWeight: FontWeight.bold)),
-              SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _langButton('🌐 English',
-                      widget.episode['video_url'] ?? ''),
-                  ),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: _langButton('🇸🇦 عربي',
-                      widget.episode['video_url_arabic'] ?? ''),
-                  ),
-                ],
-              ),
-              SizedBox(height: 24),
-            ],
-
-            Text('Choose Player',
-              style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
-                fontWeight: FontWeight.bold)),
-            SizedBox(height: 12),
-            _playerButton(
-              name: 'ASD Player',
-              description: 'Recommended',
-              color: Colors.blue,
-              icon: Icons.play_circle_fill,
-              onTap: () => openInPlayer('asd'),
-            ),
-            SizedBox(height: 10),
-            _playerButton(
-              name: 'MX Player',
-              description: 'Popular choice',
-              color: Colors.orange,
-              icon: Icons.play_circle_fill,
-              onTap: () => openInPlayer('mx'),
-            ),
-            SizedBox(height: 10),
-            _playerButton(
-              name: 'VLC Player',
-              description: 'Open source',
-              color: Colors.deepOrange,
-              icon: Icons.play_circle_fill,
-              onTap: () => openInPlayer('vlc'),
-            ),
-            SizedBox(height: 24),
-
-            if (videoUrl != null) ...[
-              Text('Video URL',
-                style: TextStyle(color: Color(0xFFE53935), fontSize: 15,
-                  fontWeight: FontWeight.bold)),
-              SizedBox(height: 8),
-              GestureDetector(
-                onTap: () {
-                  Clipboard.setData(ClipboardData(text: videoUrl!));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('URL copied!'),
-                      backgroundColor: Colors.green,
-                      behavior: SnackBarBehavior.floating,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    ),
-                  );
-                },
-                child: Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Color(0xFF1A1A1A),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(videoUrl!,
-                          style: TextStyle(color: Colors.white38, fontSize: 11),
-                          maxLines: 2, overflow: TextOverflow.ellipsis),
-                      ),
-                      SizedBox(width: 8),
-                      Icon(Icons.copy, color: Colors.white38, size: 16),
-                    ],
+                if (videoUrl == null)
+                  const Center(
+                    child: Text('No video available',
+                      style: TextStyle(color: Colors.white54))),
+                // Fullscreen button
+                Positioned(
+                  bottom: 8, right: 8,
+                  child: IconButton(
+                    icon: const Icon(Icons.fullscreen, color: Colors.white70),
+                    onPressed: _toggleFullscreen,
                   ),
                 ),
+              ],
+            ),
+          ),
+
+          // Info & Controls
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Episode info
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 46, height: 46,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE53935).withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Center(
+                            child: Text('$epNumber',
+                              style: const TextStyle(color: Color(0xFFE53935),
+                                fontSize: 16, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(widget.animeTitle,
+                                style: const TextStyle(color: Colors.white,
+                                  fontSize: 13, fontWeight: FontWeight.bold),
+                                maxLines: 1, overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 3),
+                              Text(epTitle,
+                                style: const TextStyle(color: Colors.white54,
+                                  fontSize: 11),
+                                maxLines: 2, overflow: TextOverflow.ellipsis),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Language switch
+                  if (hasArabic) ...[
+                    const Text('Language',
+                      style: TextStyle(color: Color(0xFFE53935), fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(child: _langButton(
+                          '🌐 English', widget.episode['video_url'] ?? '')),
+                        const SizedBox(width: 10),
+                        Expanded(child: _langButton(
+                          '🇸🇦 عربي', widget.episode['video_url_arabic'] ?? '')),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                  ],
+
+                  // Copy URL
+                  if (videoUrl != null) ...[
+                    const Text('Video URL',
+                      style: TextStyle(color: Color(0xFFE53935), fontSize: 14,
+                        fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 8),
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: videoUrl!));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: const Text('URL copied!'),
+                            backgroundColor: Colors.green,
+                            behavior: SnackBarBehavior.floating,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A1A1A),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(videoUrl!,
+                                style: const TextStyle(color: Colors.white38,
+                                  fontSize: 11),
+                                maxLines: 2, overflow: TextOverflow.ellipsis),
+                            ),
+                            const SizedBox(width: 8),
+                            const Icon(Icons.copy, color: Colors.white38, size: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -300,68 +306,24 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget _langButton(String label, String url) {
     final isSelected = videoUrl == url;
     return GestureDetector(
-      onTap: () => setState(() => videoUrl = url),
+      onTap: () => _switchLanguage(url),
       child: Container(
-        padding: EdgeInsets.symmetric(vertical: 12),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFFE53935).withOpacity(0.15) : Color(0xFF1A1A1A),
+          color: isSelected
+            ? const Color(0xFFE53935).withOpacity(0.15)
+            : const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? Color(0xFFE53935) : Colors.white12),
+            color: isSelected ? const Color(0xFFE53935) : Colors.white12),
         ),
         child: Center(
           child: Text(label,
             style: TextStyle(
-              color: isSelected ? Color(0xFFE53935) : Colors.white54,
+              color: isSelected ? const Color(0xFFE53935) : Colors.white54,
               fontSize: 13,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             )),
-        ),
-      ),
-    );
-  }
-
-  Widget _playerButton({
-    required String name,
-    required String description,
-    required Color color,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.2)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 45, height: 45,
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 26),
-            ),
-            SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(name,
-                    style: TextStyle(color: Colors.white, fontSize: 14,
-                      fontWeight: FontWeight.bold)),
-                  Text(description,
-                    style: TextStyle(color: Colors.white38, fontSize: 12)),
-                ],
-              ),
-            ),
-            Icon(Icons.arrow_forward_ios, color: Colors.white24, size: 16),
-          ],
         ),
       ),
     );
