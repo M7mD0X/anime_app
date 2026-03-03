@@ -31,7 +31,19 @@ jobs:
       - name: Build project
         run: |
           flutter create temp_app --project-name anime_mt --org com.animemt
+          
+          # Fix applicationId
           sed -i 's/com.example.anime_mt/com.animemt.anime_mt/' temp_app/android/app/build.gradle
+          
+          # Enable Multidex
+          sed -i '/minSdkVersion/a\        multiDexEnabled true' temp_app/android/app/build.gradle
+          sed -i "/implementation 'org.jetbrains.kotlin/a\    implementation 'androidx.multidex:multidex:2.0.1'" temp_app/android/app/build.gradle
+          
+          # Fix AndroidManifest
+          sed -i 's/android:name="${applicationName}"/android:name="androidx.multidex.MultiDexApplication"/' temp_app/android/app/src/main/AndroidManifest.xml
+          sed -i 's/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">\n    <uses-permission android:name="android.permission.INTERNET"\/>/' temp_app/android/app/src/main/AndroidManifest.xml
+          sed -i 's/android:label="anime_mt"/android:label="Anime MT"/' temp_app/android/app/src/main/AndroidManifest.xml
+          
           mkdir -p temp_app/lib/screens
           mkdir -p temp_app/lib/services
           mkdir -p temp_app/lib/widgets
@@ -51,8 +63,7 @@ jobs:
           cp lib/widgets/shimmer_widget.dart temp_app/lib/widgets/shimmer_widget.dart
           cp pubspec.yaml temp_app/pubspec.yaml
           cp icon.png temp_app/icon.png
-          sed -i 's/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">\n    <uses-permission android:name="android.permission.INTERNET"\/>/' temp_app/android/app/src/main/AndroidManifest.xml
-          sed -i 's/android:label="anime_mt"/android:label="Anime MT"/' temp_app/android/app/src/main/AndroidManifest.xml
+          
           cd temp_app
           flutter pub get
           dart run flutter_launcher_icons
