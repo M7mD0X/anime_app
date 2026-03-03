@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-Noneimport 'package:media_kit/media_kit.dart';
+import 'package:media_kit/media_kit.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
@@ -16,9 +16,6 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Anime MT',
       debugShowCheckedModeBanner: false,
-
-None
-
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFF0D0D0D),
         colorScheme: const ColorScheme.dark(
