@@ -4,7 +4,7 @@
 
     <application
         android:label="أنمي سلاير"
-        android:name="androidx.multidex.MultiDexApplication"
+        android:name="io.flutter.app.FlutterMultiDexApplication"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
