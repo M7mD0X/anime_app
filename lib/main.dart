@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:media_kit/media_kit.dart';
+Noneimport 'package:media_kit/media_kit.dart';
 import 'screens/splash_screen.dart';
 
 void main() {
@@ -18,17 +17,7 @@ class MyApp extends StatelessWidget {
       title: 'Anime MT',
       debugShowCheckedModeBanner: false,
 
-      // Arabic support
-      locale: const Locale('ar'),
-      supportedLocales: const [
-        Locale('ar'),
-        Locale('en'),
-      ],
-      localizationsDelegates: const [
-        GlobalMaterialLocalizations.delegate,
-        GlobalWidgetsLocalizations.delegate,
-        GlobalCupertinoLocalizations.delegate,
-      ],
+None
 
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFF0D0D0D),
