@@ -83,6 +83,12 @@ jobs:
           sed -i "s/versionCode 1/versionCode ${{ env.VERSION_CODE }}/" temp_app/android/app/build.gradle
           sed -i "s/versionName \"1.0\"/versionName \"${{ env.VERSION }}\"/" temp_app/android/app/build.gradle
 
+          # Fix Kotlin version for media_kit
+          sed -i "s/ext.kotlin_version = '1.8.0'/ext.kotlin_version = '1.9.0'/" temp_app/android/build.gradle
+          sed -i "s/implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.0'/implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.0'/" temp_app/android/app/build.gradle
+          sed -i "s/compileSdkVersion 34/compileSdkVersion 35/" temp_app/android/app/build.gradle
+          sed -i "s/targetSdkVersion 34/targetSdkVersion 35/" temp_app/android/app/build.gradle
+
           # Enable Multidex
           sed -i '/minSdkVersion/a\        multiDexEnabled true' temp_app/android/app/build.gradle
           sed -i "/implementation 'org.jetbrains.kotlin/a\    implementation 'androidx.multidex:multidex:2.0.1'" temp_app/android/app/build.gradle
