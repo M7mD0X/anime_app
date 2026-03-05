@@ -12,6 +12,10 @@ on:
           - patch
           - minor
           - major
+      release_notes:
+        description: 'Release notes (leave empty to auto-generate from commits)'
+        required: false
+        default: ''
 
 permissions:
   contents: write
@@ -22,6 +26,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0  # needed for git log changelog
 
       - uses: actions/setup-java@v3
         with:
@@ -33,18 +39,15 @@ jobs:
           flutter-version: '3.19.0'
           cache: true
 
-      - name: Install Android SDK 36
-        uses: android-actions/setup-android@v3
-        with:
-          packages: 'platforms;android-36 build-tools;36.0.0'
-
       - name: Cache Gradle
         uses: actions/cache@v3
         with:
           path: |
             ~/.gradle/caches
             ~/.gradle/wrapper
-          key: gradle-${{ hashFiles('**/*.gradle*') }}
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
 
       - name: Bump version
         id: version
@@ -69,42 +72,131 @@ jobs:
           echo "VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "VERSION_CODE=$VERSION_CODE" >> $GITHUB_ENV
 
-      - name: Save new version to repo
+      - name: Generate changelog
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
-          git add version.txt
-          git commit -m "chore: bump version to ${{ env.VERSION }}"
-          git pull --rebase origin main
-          git push
+          MANUAL_NOTES="${{ github.event.inputs.release_notes }}"
+          
+          # Auto-generate from commits since last tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          if [ -z "$LAST_TAG" ]; then
+            AUTO_LOG=$(git log --oneline -10 --pretty=format:"- %s" | grep -v "^- chore:" || true)
+          else
+            AUTO_LOG=$(git log ${LAST_TAG}..HEAD --oneline --pretty=format:"- %s" | grep -v "^- chore:" || true)
+          fi
+          
+          # Combine manual + auto
+          if [ -n "$MANUAL_NOTES" ] && [ -n "$AUTO_LOG" ]; then
+            CHANGELOG="$MANUAL_NOTES
+
+          **Changes:**
+          $AUTO_LOG"
+          elif [ -n "$MANUAL_NOTES" ]; then
+            CHANGELOG="$MANUAL_NOTES"
+          elif [ -n "$AUTO_LOG" ]; then
+            CHANGELOG="**Changes:**
+          $AUTO_LOG"
+          else
+            CHANGELOG="Version ${{ env.VERSION }}"
+          fi
+          
+          echo "CHANGELOG<<EOF" >> $GITHUB_ENV
+          echo "$CHANGELOG" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       - name: Build project
         run: |
           flutter create temp_app --project-name anime_mt --org com.animemt
 
-          # Fix applicationId
-          sed -i 's/com.example.anime_mt/com.animemt.anime_mt/' temp_app/android/app/build.gradle
+          # Write build.gradle directly (no sed guessing)
+          cat > temp_app/android/app/build.gradle << 'GRADLE'
+          plugins {
+              id 'com.android.application'
+              id 'kotlin-android'
+              id 'dev.flutter.flutter-gradle-plugin'
+          }
 
-          # Set version
-          sed -i "s/versionCode 1/versionCode ${{ env.VERSION_CODE }}/" temp_app/android/app/build.gradle
-          sed -i "s/versionName \"1.0\"/versionName \"${{ env.VERSION }}\"/" temp_app/android/app/build.gradle
+          android {
+              compileSdkVersion 36
+              ndkVersion flutter.ndkVersion
 
-          # Fix Kotlin version for media_kit (match any version)
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_1_8
+                  targetCompatibility JavaVersion.VERSION_1_8
+              }
+
+              kotlinOptions {
+                  jvmTarget = '1.8'
+              }
+
+              sourceSets {
+                  main.java.srcDirs += 'src/main/kotlin'
+              }
+
+              defaultConfig {
+                  applicationId "com.animemt.anime_mt"
+                  minSdkVersion 21
+                  targetSdkVersion 36
+                  versionCode VERSION_CODE_PLACEHOLDER
+                  versionName "VERSION_NAME_PLACEHOLDER"
+                  multiDexEnabled true
+              }
+
+              buildTypes {
+                  release {
+                      signingConfig signingConfigs.debug
+                      minifyEnabled false
+                      shrinkResources false
+                  }
+              }
+          }
+
+          flutter {
+              source '../..'
+          }
+
+          dependencies {
+              implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.22'
+              implementation 'androidx.multidex:multidex:2.0.1'
+          }
+          GRADLE
+
+          # Inject version values
+          sed -i "s/VERSION_CODE_PLACEHOLDER/${{ env.VERSION_CODE }}/" temp_app/android/app/build.gradle
+          sed -i "s/VERSION_NAME_PLACEHOLDER/${{ env.VERSION }}/" temp_app/android/app/build.gradle
+
+          # Fix root build.gradle kotlin version
           sed -i "s/ext.kotlin_version = '[^']*'/ext.kotlin_version = '1.9.22'/" temp_app/android/build.gradle
-          sed -i "s/kotlin-gradle-plugin:[^']*'/kotlin-gradle-plugin:1.9.22'/" temp_app/android/build.gradle
-          
-          # Set compileSdk to 36 for media_kit
-          sed -i "s/compileSdkVersion [0-9]*/compileSdkVersion 36/" temp_app/android/app/build.gradle
-          sed -i "s/targetSdkVersion [0-9]*/targetSdkVersion 36/" temp_app/android/app/build.gradle
 
-          # Enable Multidex
-          sed -i '/minSdkVersion/a\        multiDexEnabled true' temp_app/android/app/build.gradle
-          sed -i "/implementation 'org.jetbrains.kotlin/a\    implementation 'androidx.multidex:multidex:2.0.1'" temp_app/android/app/build.gradle
-
-          # Fix AndroidManifest
-          sed -i 's/android:name="${applicationName}"/android:name="androidx.multidex.MultiDexApplication"/' temp_app/android/app/src/main/AndroidManifest.xml
-          sed -i 's/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">/<manifest xmlns:android="http:\/\/schemas.android.com\/apk\/res\/android">\n    <uses-permission android:name="android.permission.INTERNET"\/>/' temp_app/android/app/src/main/AndroidManifest.xml
-          sed -i 's/android:label="anime_mt"/android:label="Anime MT"/' temp_app/android/app/src/main/AndroidManifest.xml
+          # Write AndroidManifest
+          cat > temp_app/android/app/src/main/AndroidManifest.xml << 'MANIFEST'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <uses-permission android:name="android.permission.INTERNET"/>
+              <application
+                  android:label="Anime MT"
+                  android:name="androidx.multidex.MultiDexApplication"
+                  android:icon="@mipmap/ic_launcher">
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:launchMode="singleTop"
+                      android:theme="@style/LaunchTheme"
+                      android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+                      android:hardwareAccelerated="true"
+                      android:windowSoftInputMode="adjustResize">
+                      <meta-data
+                          android:name="io.flutter.embedding.android.NormalTheme"
+                          android:resource="@style/NormalTheme"/>
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+                  </activity>
+                  <meta-data
+                      android:name="flutterEmbedding"
+                      android:value="2"/>
+              </application>
+          </manifest>
+          MANIFEST
 
           # Copy source files
           mkdir -p temp_app/lib/screens
@@ -133,12 +225,21 @@ jobs:
           flutter build apk --release
           mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/AnimeMT.apk
 
+      - name: Save version to repo
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add version.txt
+          git commit -m "chore: bump version to ${{ env.VERSION }}"
+          git pull --rebase origin main
+          git push
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.VERSION }}
           name: "Anime MT v${{ env.VERSION }}"
-          body: "Version ${{ env.VERSION }}"
+          body: ${{ env.CHANGELOG }}
           files: temp_app/build/app/outputs/flutter-apk/AnimeMT.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
