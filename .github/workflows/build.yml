@@ -117,7 +117,7 @@ jobs:
 
           android {
               namespace 'com.animemt.anime_mt'
-              compileSdkVersion 36
+              compileSdkVersion 34
               ndkVersion flutter.ndkVersion
 
               compileOptions {
@@ -136,7 +136,7 @@ jobs:
               defaultConfig {
                   applicationId "com.animemt.anime_mt"
                   minSdkVersion 21
-                  targetSdkVersion 36
+                  targetSdkVersion 34
                   versionCode VERSION_CODE_PLACEHOLDER
                   versionName "VERSION_NAME_PLACEHOLDER"
                   multiDexEnabled true
